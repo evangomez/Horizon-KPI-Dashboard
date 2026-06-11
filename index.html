@@ -8,14 +8,12 @@
 <script src="https://cdn.jsdelivr.net/npm/monday-sdk-js@0.5.6/dist/main.js"></script><!--
   SCE KPI Dashboard — Embeddable for Monday.com (SDK-authenticated, zero secrets)
   Tabs: Period Snapshot + Staff Performance (program-aware diagnosis)
-
   Setup:
   1. Host the file (GitHub Pages recommended — push to repo, enable Pages).
   2. Monday → Developers → Build App → add Dashboard Widget feature → set URL to hosted file.
   3. Install app on your workspace → add widget to a dashboard.
   4. Done. Monday hands the iframe a session token at runtime; viewers see data
      automatically, no token entry. Auto-refreshes every 5 min.
-
   Dev fallback: when loaded outside Monday (e.g. file://, localhost), the SDK has
   no session token, so API calls fail and the page shows the FALLBACK reference week.
   To test live data locally, open the console and run `monday.setToken("YOUR_TOKEN")`
@@ -61,23 +59,19 @@
   .right-label { font-size: 11px; color: var(--text-tertiary); margin: 0; text-transform: uppercase; letter-spacing: 0.06em; }
   .right-val { font-size: 13px; margin: 2px 0 0; font-weight: 500; }
   button { font-family: var(--font); }
-
   .tabs { display: flex; gap: 4px; border-bottom: 0.5px solid var(--border); margin-bottom: 20px; }
   .tab { background: transparent; border: none; padding: 10px 16px; color: var(--text-muted); font-size: 13px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
   .tab:hover { color: var(--text); }
   .tab.active { color: var(--text); border-bottom-color: var(--accent); }
   .pane { display: none; }
   .pane.active { display: block; }
-
   .hero { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 12px; }
   .tile { background: var(--surface); border-radius: var(--radius); padding: 14px; min-width: 0; }
   .tile-label { font-size: 11px; color: var(--text-muted); margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.05em; }
   .tile-value { font-size: 28px; font-weight: 500; margin: 0; line-height: 1; }
   .tile-foot { font-size: 11px; color: var(--text-tertiary); margin: 6px 0 0; }
-
   h2 { font-size: 13px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 28px 0 4px; }
   .h2-sub { font-size: 12px; color: var(--text-tertiary); margin: 0 0 12px; }
-
   table.kpi { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--surface); border-radius: var(--radius-lg); overflow: hidden; }
   table.kpi thead tr { border-bottom: 0.5px solid var(--border-strong); }
   table.kpi th { text-align: left; padding: 12px 14px; font-weight: 500; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -92,7 +86,6 @@
   .badge.warn { background: var(--warn-bg); color: var(--warn-fg); }
   .badge.bad { background: var(--bad-bg); color: var(--bad-fg); }
   .mute { color: var(--text-tertiary); }
-
   table.events { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--surface); border-radius: var(--radius-lg); overflow: hidden; margin-top: 8px; }
   table.events thead tr { border-bottom: 0.5px solid var(--border-strong); }
   table.events th, table.events td { padding: 10px 14px; }
@@ -104,23 +97,18 @@
   .signup-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); border: 0.5px solid var(--border); font-size: 11px; font-weight: 500; color: var(--text); white-space: nowrap; }
   .signup-pill [data-lucide] { width: 11px; height: 11px; color: var(--accent); }
   .target-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; font-weight: 400; }
-
   .footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; padding-top: 10px; border-top: 0.5px solid var(--border); font-size: 11px; color: var(--text-tertiary); }
-
   .hidden { display: none; }
-
   .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; align-items: center; }
   .controls input, .controls select { background: var(--surface); border: 0.5px solid var(--border-strong); color: var(--text); padding: 8px 12px; border-radius: var(--radius); font-size: 13px; font-family: var(--font); }
   .chip { background: var(--surface); padding: 6px 12px; border-radius: 999px; font-size: 12px; color: var(--text-muted); border: 0.5px solid var(--border); cursor: pointer; }
   .chip.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
-
   .range-bar { background: var(--surface); border-radius: var(--radius-lg); padding: 12px 14px; margin-bottom: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .range-bar .label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; margin-right: 4px; }
   .range-bar .dates { display: flex; gap: 6px; align-items: center; margin-left: auto; }
   .range-bar input[type=date] { background: var(--bg); border: 0.5px solid var(--border-strong); color: var(--text); padding: 6px 8px; border-radius: var(--radius); font-size: 12px; font-family: var(--font); }
   .range-bar .summary { font-size: 13px; font-weight: 600; color: var(--accent); background: var(--accent-bg); padding: 4px 10px; border-radius: var(--radius); margin-left: 8px; letter-spacing: 0.01em; }
   .heading-range { color: var(--accent); font-weight: 600; }
-
   /* Expandable "How the score is calculated" disclosure in the Staff Performance legend. */
   .source-details { display: block; margin-top: 8px; }
   .source-details summary { cursor: pointer; color: var(--accent); font-size: 11px; font-weight: 600; user-select: none; padding: 4px 0; letter-spacing: 0.01em; list-style: none; display: inline-flex; align-items: center; gap: 4px; }
@@ -135,7 +123,6 @@
   .source-body ul li { margin-bottom: 4px; }
   .source-body .example { display: block; margin-top: 4px; padding: 4px 8px; background: var(--bg); border-radius: 4px; font-size: 11px; color: var(--text-tertiary); }
   .source-body .source-foot { font-size: 11px; font-style: italic; color: var(--text-tertiary); }
-
   /* Zero-signup notification — flags events where every program-relevant sign-up came back 0. */
   .zero-alert-badge { display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; padding: 4px 10px; border-radius: 999px; background: var(--bad-bg); color: var(--bad-fg); font-size: 12px; font-weight: 600; vertical-align: middle; letter-spacing: 0.01em; }
   .zero-alert-badge [data-lucide] { width: 13px; height: 13px; }
@@ -143,7 +130,6 @@
   table.events tr.zero-row td { border-left: 0; }
   table.events tr.zero-row td:first-child { box-shadow: inset 3px 0 0 var(--bad-text); }
   td .row-icon.zero-icon { color: var(--bad-text); }
-
   table.staff { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--surface); border-radius: var(--radius-lg); overflow: hidden; }
   table.staff thead tr { border-bottom: 0.5px solid var(--border-strong); }
   table.staff th { text-align: left; padding: 10px 12px; font-weight: 500; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; user-select: none; }
@@ -164,19 +150,16 @@
   .br-val.muted { color: var(--text-tertiary); }
   .br-foot { font-size: 10px; color: var(--text-tertiary); margin: 3px 0 0; }
   .meta-row { font-size: 11px; color: var(--text-tertiary); margin: 0 0 8px; }
-
   @media (max-width: 720px) {
     .hero { grid-template-columns: repeat(2, minmax(0,1fr)); }
     table.kpi th, table.kpi td, table.staff th, table.staff td { padding: 8px 6px; font-size: 11px; }
   }
-
   /* Lucide icons — inline-aligned with text, color inherited */
   [data-lucide], .lucide { width: 1em; height: 1em; vertical-align: -2px; stroke-width: 2; color: currentColor; }
   .tile-label [data-lucide], .br-label [data-lucide] { width: 14px; height: 14px; margin-right: 6px; vertical-align: -3px; color: var(--accent); }
   .badge [data-lucide] { width: 12px; height: 12px; margin-right: 4px; vertical-align: -2px; }
   .kpi-icon { width: 18px; height: 18px; vertical-align: -4px; margin-right: 8px; color: var(--accent); }
   td .row-icon { width: 14px; height: 14px; vertical-align: -2px; margin-right: 6px; color: var(--text-tertiary); }
-
   /* Micro-interactions — wobble on hover, fade in on first paint */
   @keyframes wobble {
     0%, 100% { transform: rotate(0deg) translateY(0); }
@@ -205,7 +188,6 @@
 </head>
 <body>
 <div class="card">
-
   <div class="header">
     <div style="min-width:0; flex: 1;">
       <div class="live"><span class="live-dot"></span><span class="live-label" id="status-label">Connecting...</span></div>
@@ -217,7 +199,6 @@
       <p class="right-val" id="published">—</p>
     </div>
   </div>
-
   <div class="range-bar">
     <span class="label">Period</span>
     <span class="chip active" data-range="last-week" onclick="setRange('last-week')">Last week</span>
@@ -235,15 +216,12 @@
     </div>
     <span class="summary" id="range-summary">—</span>
   </div>
-
   <div class="tabs">
     <button class="tab active" data-tab="week">Period snapshot</button>
     <button class="tab" data-tab="staff">Staff performance</button>
   </div>
-
   <!-- ============== WEEK TAB ============== -->
   <div class="pane active" id="pane-week">
-
     <div class="hero">
       <div class="tile"><p class="tile-label"><i data-lucide="calendar-days"></i>Total events</p><p class="tile-value" id="m-events">—</p><p class="tile-foot" id="m-events-foot">&nbsp;</p></div>
       <div class="tile"><p class="tile-label"><i data-lucide="users"></i>Total contacts</p><p class="tile-value" id="m-contacts">—</p><p class="tile-foot" id="m-contacts-foot">&nbsp;</p></div>
@@ -253,7 +231,6 @@
       <div class="tile"><p class="tile-label"><i data-lucide="heart-pulse"></i>Medical Baseline</p><p class="tile-value" id="m-mbl">—</p><p class="tile-foot" id="m-mbl-foot">&nbsp;</p></div>
       <div class="tile"><p class="tile-label"><i data-lucide="house-plug"></i>ESA</p><p class="tile-value" id="m-esa">—</p><p class="tile-foot" id="m-esa-foot">&nbsp;</p></div>
     </div>
-
     <h2>KPI snapshot — <span id="kpi-heading-range" class="heading-range">this week</span></h2>
     <p class="h2-sub" id="kpi-source">—</p>
     <p class="h2-sub" style="margin-top:-6px;">Targets show <em>per-event basis</em> underneath. Fixed targets come from SCE's weekly Excel benchmarks; CARE/FERA, MBL, and ESA have no SCE target yet, so we use a minimum bar of <strong>1 per eligible event</strong> until SCE sets a goal.</p>
@@ -269,7 +246,6 @@
       </thead>
       <tbody id="kpi-tbody"></tbody>
     </table>
-
     <h2>Events — <span id="events-heading-range" class="heading-range">this week</span></h2>
     <table class="events">
       <thead>
@@ -285,10 +261,8 @@
       <tbody id="events-tbody"></tbody>
     </table>
   </div>
-
   <!-- ============== STAFF TAB ============== -->
   <div class="pane" id="pane-staff">
-
     <h2>Staff performance — rolling window</h2>
     <div class="h2-sub" id="staff-source">
       Each staff is graded against the per-event goals — not against teammates. <strong>≥95% On Track · 65–94% Inconsistent · &lt;65% Underperforming · &lt;3 events Limited Data.</strong> Turnout isn't counted (staff don't control who walks in).
@@ -309,7 +283,6 @@
         </div>
       </details>
     </div>
-
     <div class="controls">
       <input id="staff-search" type="text" placeholder="Search staff..." oninput="renderStaff()" />
       <span class="chip active" data-prog="all" onclick="setProg('all')">All</span>
@@ -318,7 +291,6 @@
       <span class="chip" data-prog="iqp" onclick="setProg('iqp')">IQP</span>
       <span class="summary mute" style="margin-left: auto; font-size: 11px;">Attribution: each staff listed in "Which staff members attended" gets full event credit. Same as Excel.</span>
     </div>
-
     <table class="staff" id="staff-table">
       <thead>
         <tr>
@@ -338,14 +310,11 @@
       <tbody id="staff-tbody"></tbody>
     </table>
   </div>
-
   <div class="footer">
     <span id="source-line">Source: Monday board 7594026969 · H-MET MEU Event Report Forms</span>
     <span id="sync-line">Last sync: —</span>
   </div>
-
 </div>
-
 <script>
 const BOARD_ID = 7594026969;
 const COLS = {
@@ -366,6 +335,18 @@ const COLS = {
   staff: "multi_select3__1",
   requester: "single_select__1",  // SCE Requester — used to classify events (Lionel=EEC, Ada=CO, Veronica=IQP)
 };
+// FIX (timezone off-by-one): parse a Monday date column ("YYYY-MM-DD") as LOCAL
+// midnight. `new Date("2026-06-01")` parses as UTC midnight, which in US time zones
+// reads as the PREVIOUS calendar day once compared/displayed in local time. That
+// shifted every event back a day and silently dropped events landing on the first
+// day of a range (e.g. a Mon-Jun-1 event fell before the "Last week" start boundary).
+// Building the Date from explicit Y/M/D parts pins it to local midnight, so the
+// calendar date the staffer entered is the calendar date the dashboard uses.
+function parseLocalDate(s){
+  if (!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
+}
 // SCE requester → program class. Adam confirmed: there are no "Mixed" events; the
 // SCE-side program lead deterministically identifies which program family the
 // event belongs to. Unknown / blank requester falls through to "Other".
@@ -394,13 +375,11 @@ const KPI_DEFS = [
   { key: "mbl",      label: "Medical Baseline",        baselineKey: "mbl",      unit: "enrollments", scope: "MBL",     eligibleTags: ["Medical Baseline (MBL)"] },
   { key: "esa",      label: "ESA Enrollments",         baselineKey: "esa",      unit: "enrollments", scope: "IQP",     eligibleTags: ["Income-Qualified Programs (IQP)"] },
 ];
-
 function eventPromotes(event, tags){
   if (!event || !tags || !tags.length) return false;
   const txt = event.program || "";
   return tags.some(t => txt.includes(t));
 }
-
 // Per-event score: each applicable KPI gets a 0-100% score (actual/threshold, capped
 // at 100). Event score = average of those per-KPI scores. Eligibility is tag-based —
 // only KPIs whose program tag is on the event actually count. Returns null if no
@@ -431,7 +410,6 @@ function eventScore(event, baselines){
   const avg = scores.reduce((a,b) => a+b, 0) / scores.length;
   return { score: avg, kpiCount: scores.length };
 }
-
 // Kept for backward compatibility but unused — eventScore replaced this binary check.
 function eventPassResult(event, baselines){
   const checks = [];
@@ -458,12 +436,10 @@ function eventPassResult(event, baselines){
   const met = checks.filter(Boolean).length;
   return { met, total: checks.length, passes: (met / checks.length) >= 0.5 };
 }
-
 // Historical per-event baselines (avg per CO+IQP event across ALL loaded data).
 // Populated by computeBaselines() after the data fetch; used as the per-event
 // target until SCE/Adam set explicit ones.
 let BASELINES = { careFera: 0, mbl: 0, esa: 0 };
-
 // Per-metric Lucide icon slugs for the KPI Snapshot rows
 const KPI_ICONS = {
   avgContacts:  "users",
@@ -475,7 +451,6 @@ const KPI_ICONS = {
   mbl:          "heart-pulse",  // Medical Baseline = electricity allowance for medical needs
   esa:          "house-plug",   // ESA = free energy-efficient appliances + home upgrades
 };
-
 function computeBaselines(items){
   // For each dynamic-target metric, average over ONLY events that actually promoted
   // that program (per its eligibleTags) — not all CO+IQP events. This gives an honest
@@ -489,7 +464,6 @@ function computeBaselines(items){
   });
   return out;
 }
-
 // Program-aware classification: which programs map to EEC vs CO/IQP focus
 // EEC programs — only tags unique to Energy Education Center events. "Energy Efficiency (EE)"
 // appears on almost every event regardless of program team, so it's not a reliable EEC signal
@@ -500,7 +474,6 @@ const IQP_PROGRAMS = ["Income-Qualified Programs (IQP)"];
 const CO_PROGRAMS  = ["Medical Baseline (MBL)", "CARE", "FERA", "ESA"];
 // Programs whose KPI set is the CO/IQP one (App + CARE/MBL/ESA). Used for filtering & baselines.
 const COIQP_CLASSES = ["CO", "IQP"];  // Mixed deprecated — requester deterministically picks one lane.
-
 const FALLBACK = {
   weekLabel: "May 18-24, 2026", publishedDate: "May 26, 2026",
   source: "6 events · 11 person-events · week ending May 24, 2026 (reference data)",
@@ -519,9 +492,7 @@ const FALLBACK = {
   ],
   allEvents: [],
 };
-
 let STATE = { all: [], lastFetched: null, sortKey: "diagnosis", sortDir: "asc", program: "all", rangePreset: "last-week", rangeStart: null, rangeEnd: null };
-
 function computeRange(preset){
   const now = new Date(); now.setHours(0,0,0,0);
   const day = now.getDay();
@@ -568,15 +539,15 @@ function computeRange(preset){
       label = "All time";
       break;
     case "custom":
-      start = STATE.rangeStart ? new Date(STATE.rangeStart) : new Date(thisMon);
-      end = STATE.rangeEnd ? new Date(STATE.rangeEnd) : new Date(now);
+      // FIX (timezone off-by-one): parse the YYYY-MM-DD inputs as local dates, not UTC.
+      start = STATE.rangeStart ? parseLocalDate(STATE.rangeStart) : new Date(thisMon);
+      end = STATE.rangeEnd ? parseLocalDate(STATE.rangeEnd) : new Date(now);
       label = "Custom range";
       break;
   }
   end.setHours(23,59,59,999);
   return { start, end, label, ymd };
 }
-
 function setRange(preset){
   STATE.rangePreset = preset;
   document.querySelectorAll(".chip[data-range]").forEach(c => c.classList.toggle("active", c.dataset.range === preset));
@@ -606,16 +577,15 @@ function onCustomDate(){
   document.querySelectorAll(".chip[data-range]").forEach(c => c.classList.toggle("active", c.dataset.range === "custom"));
   renderAll();
 }
-
 // Monday SDK — replaces manual token entry. When loaded inside Monday (via Dashboard
 // Widget / Board View), the SDK auto-authenticates as the current user via session
 // token. No secrets in this file; nothing for a casual visitor to steal.
 const monday = mondaySdk();
-
 function getActiveRange(){
   if (STATE.rangePreset === "custom" && STATE.rangeStart && STATE.rangeEnd) {
-    const start = new Date(STATE.rangeStart); start.setHours(0,0,0,0);
-    const end = new Date(STATE.rangeEnd); end.setHours(23,59,59,999);
+    // FIX (timezone off-by-one): parse the YYYY-MM-DD inputs as local dates, not UTC.
+    const start = parseLocalDate(STATE.rangeStart); start.setHours(0,0,0,0);
+    const end = parseLocalDate(STATE.rangeEnd); end.setHours(23,59,59,999);
     return { start, end, label: "Custom range" };
   }
   return computeRange(STATE.rangePreset || "last-week");
@@ -635,7 +605,6 @@ function fmtRange(s, e){
 }
 function fmtDate(d){ return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); }
 function fmtNum(n){ return typeof n === "number" ? n.toLocaleString("en-US") : "—"; }
-
 function classifyProgram(programText) {
   if (!programText) return "unknown";
   const eec = EEC_PROGRAMS.some(p => programText.includes(p));
@@ -648,14 +617,12 @@ function classifyProgram(programText) {
   if (eec && incomeQualifiedFamily) return "Mixed";
   return "Other";
 }
-
 // Wrap monday.api so the rest of the code stays unchanged. Throws on GraphQL errors.
 async function mondayQuery(query, variables){
   const res = await monday.api(query, { variables });
   if (res.errors && res.errors.length) throw new Error(res.errors[0].message);
   return res.data;
 }
-
 async function fetchAll(){
   const firstQ = `query($board:[ID!]) { boards(ids:$board) { items_page(limit:500) { cursor items { id name column_values { id text value } } } } }`;
   const first = await mondayQuery(firstQ, { board: [String(BOARD_ID)] });
@@ -682,7 +649,10 @@ async function fetchAll(){
     return {
       id: it.id, name: it.name,
       eventName: col(COLS.eventName) || it.name,
-      date: dateRaw ? new Date(dateRaw) : null,
+      // FIX (timezone off-by-one): parse as LOCAL midnight instead of `new Date(dateRaw)`
+      // (UTC), which shifted every event back a calendar day in Pacific time and
+      // dropped events that fell on the first day of the selected range.
+      date: parseLocalDate(dateRaw),
       status: col(COLS.status),
       contacts: num(COLS.contacts),
       meaningful: num(COLS.meaningful),
@@ -701,7 +671,6 @@ async function fetchAll(){
     };
   }).filter(i => i.date && i.status === "Done");
 }
-
 // Classification: SCE Requester is the deterministic signal. If we can't map the
 // requester (blank or someone new), fall back to the older programs-promoted text
 // classifier so the event still gets a sensible class.
@@ -710,7 +679,6 @@ function classifyEvent(event){
   if (reqClass) return reqClass;
   return classifyProgram(event.program || "");
 }
-
 function computeWeekData(items){
   const { start, end, label } = getActiveRange();
   const inRange = items.filter(i => i.date >= start && i.date <= end);
@@ -761,11 +729,9 @@ function computeWeekData(items){
     })).sort((a,b) => new Date(a.date) - new Date(b.date))
   };
 }
-
 function computeStaffData(items, programFilter){
   const { start, end } = getActiveRange();
   const scoped = items.filter(i => i.date >= start && i.date <= end);
-
   // Group by staff (multi-select can have many staff per event; each gets credit)
   const byStaff = {};
   scoped.forEach(i => {
@@ -775,7 +741,6 @@ function computeStaffData(items, programFilter){
       byStaff[name].events.push(i);
     });
   });
-
   const staffList = Object.values(byStaff).map(s => {
     let evs = s.events;
     // Filter by single program class. "All" leaves everything; "eec"/"co"/"iqp"
@@ -784,7 +749,6 @@ function computeStaffData(items, programFilter){
     if (programFilter === "eec")      evs = evs.filter(e => e.programClass === "EEC");
     else if (programFilter === "co")  evs = evs.filter(e => e.programClass === "CO");
     else if (programFilter === "iqp") evs = evs.filter(e => e.programClass === "IQP");
-
     const eecEvents     = evs.filter(e => e.programClass === "EEC");
     const coOnlyEvents  = evs.filter(e => e.programClass === "CO");
     const iqpOnlyEvents = evs.filter(e => e.programClass === "IQP");
@@ -794,7 +758,6 @@ function computeStaffData(items, programFilter){
     const totalMeaningful = evs.reduce((a, e) => a + e.meaningful, 0);
     const zeroEvents = evs.filter(e => (e.contacts === 0 && e.tll === 0 && e.mailing === 0 && e.appDownloads === 0 && e.interplay === 0)).length;
     const lowContactEvents = evs.filter(e => e.contacts > 0 && e.contacts < 25).length;
-
     const avg = (arr, key) => arr.length ? +(arr.reduce((a,e) => a + e[key], 0) / arr.length).toFixed(2) : 0;
     // Eligibility-filtered event pools for dynamic-target metrics: only events that actually
     // promoted that program count toward the staff's per-event average.
@@ -836,29 +799,24 @@ function computeStaffData(items, programFilter){
     const KPI_CAP = 150;
     const kpiScore = (avg, threshold) =>
       threshold > 0 ? Math.min(avg / threshold * 100, KPI_CAP) : null;
-
     const coreScores = [];
     if (data.coCount  > 0) coreScores.push(kpiScore(data.avgApp,  3));
     if (data.eecCount > 0) coreScores.push(kpiScore(data.avgTll,  1));
     if (data.eecCount > 0) coreScores.push(kpiScore(data.avgMail, 4));
-
     const bonusScores = [];
     if (data.eecCount > 0)                                            bonusScores.push(kpiScore(data.avgInter,    1));
     if (data.careEligibleCount > 0 && (BASELINES.careFera || 0) > 0)  bonusScores.push(kpiScore(data.avgCareFera, BASELINES.careFera));
     if (data.mblEligibleCount  > 0 && (BASELINES.mbl       || 0) > 0) bonusScores.push(kpiScore(data.avgMbl,      BASELINES.mbl));
     if (data.esaEligibleCount  > 0 && (BASELINES.esa       || 0) > 0) bonusScores.push(kpiScore(data.avgEsa,      BASELINES.esa));
-
     const coreAvg  = coreScores.length  ? coreScores.reduce((a,b) => a+b, 0)  / coreScores.length  : null;
     const bonusAvg = bonusScores.length ? bonusScores.reduce((a,b) => a+b, 0) / bonusScores.length : null;
     let composite;
     if (coreAvg !== null && bonusAvg !== null) composite = (coreAvg * 2 + bonusAvg) / 3;
     else if (coreAvg !== null)                 composite = coreAvg;
     else                                       composite = null;
-
     data.compositeScore = composite != null ? +composite.toFixed(1) : null;
     data.coreScore      = coreAvg    != null ? +coreAvg.toFixed(1)  : null;
     data.bonusScore     = bonusAvg   != null ? +bonusAvg.toFixed(1) : null;
-
     // Absolute cutoffs. 95% = "right at goal", 65% = below goal on multiple metrics,
     // <65% = significantly below across the board.
     if (data.eventCount < 3 || composite == null) data.diagnosis = "Limited Data";
@@ -869,11 +827,9 @@ function computeStaffData(items, programFilter){
   });
   return staffList;
 }
-
 function render(items, isLive){
   document.getElementById("status-label").textContent = isLive ? "Live · auto-refresh 5 min" : "Reference data · open inside Monday for live";
   document.getElementById("status-label").style.color = isLive ? "var(--good-text)" : "var(--text-tertiary)";
-
   if (!isLive) {
     // Shape FALLBACK events like live items so date-range filtering works the same way.
     // Without this the snapshot was frozen on May 18-24 regardless of which chip was clicked.
@@ -900,7 +856,6 @@ function render(items, isLive){
     renderAll();
     return;
   }
-
   STATE.all = items;
   BASELINES = { careFera: 1, mbl: 1, esa: 1 };  // minimum bar: 1 per eligible event
   STATE.lastFetched = new Date();
@@ -908,7 +863,6 @@ function render(items, isLive){
   renderAll();
   document.getElementById("sync-line").textContent = "Last sync: " + STATE.lastFetched.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
 }
-
 function renderWeekPane(d){
   document.getElementById("kpi-source").textContent = `Source: ${d.source}`;
   document.getElementById("m-events").textContent = fmtNum(d.totals.events);
@@ -927,12 +881,10 @@ function renderWeekPane(d){
   document.getElementById("m-mbl-foot").textContent = `${perEvent(d.totals.mbl || 0)} / CO+IQP event`;
   document.getElementById("m-esa").textContent = fmtNum(d.totals.esa || 0);
   document.getElementById("m-esa-foot").textContent = `${perEvent(d.totals.esa || 0)} / CO+IQP event`;
-
   const tbody = document.getElementById("kpi-tbody"); tbody.innerHTML = "";
   KPI_DEFS.forEach(def => {
     const actual = d.totals[def.key] || 0;
     const baseline = def.baselineKey ? (BASELINES[def.baselineKey] || 0) : null;
-
     // Three target flavors:
     //  1. isAvg (Avg Contacts/Event): fixed at the per-event benchmark, unscaled.
     //  2. eligibleClasses set (App/TLL/Mail/Interplay): target = perEvent × eligible-class events.
@@ -964,7 +916,6 @@ function renderWeekPane(d){
         targetSub  = `min ${baseline} / ${def.scope}-tagged event × ${eligibleCount} events`;
       }
     }
-
     const delta = Math.round((actual - target) * 10) / 10;
     const above = actual >= target;
     const deltaStr = (delta >= 0 ? "+" : "") + (def.key === "avgContacts" ? delta.toFixed(1) : delta);
@@ -979,7 +930,6 @@ function renderWeekPane(d){
       <td><span class="badge ${above ? 'good' : 'bad'}"><i data-lucide="${above ? 'check' : 'x'}"></i>${above ? 'On Target' : 'Below'}</span></td>`;
     tbody.appendChild(row);
   });
-
   const eb = document.getElementById("events-tbody"); eb.innerHTML = "";
   // Per-event sign-up pills, scoped by program. Only render non-zero values so the
   // column stays compact. EEC events show TLL/Mail/Interplay; CO/IQP show App/CARE/MBL/ESA.
@@ -992,7 +942,6 @@ function renderWeekPane(d){
     Mixed: [...EEC_PILLS, ...COIQP_PILLS],
     Other: [...EEC_PILLS, ...COIQP_PILLS], // unclassified — show any non-zero sign-up
   };
-
   // Build the set of KPIs that are actually applicable to this event, then check
   // whether ALL of them came back zero. Respects program-tag eligibility so
   // CARE/MBL/ESA only count for events that promoted that program.
@@ -1014,7 +963,6 @@ function renderWeekPane(d){
     if (!keys.length) return false; // no applicable KPIs → not flagged
     return keys.every(k => (e[k] || 0) === 0);
   }
-
   // Count + surface the zero-signup event total in the events heading so it
   // acts as a quick "needs coaching" notification.
   const zeroCount = d.events.filter(isZeroSignupEvent).length;
@@ -1030,7 +978,6 @@ function renderWeekPane(d){
       evtHead.parentElement.appendChild(badge);
     }
   }
-
   d.events.forEach(e => {
     const defs = SIGNUP_DEFS[e.program] || SIGNUP_DEFS.Other;
     const pills = defs
@@ -1055,17 +1002,14 @@ function renderWeekPane(d){
     eb.appendChild(row);
   });
 }
-
 function renderStaffPaneFallback(){
   document.getElementById("staff-tbody").innerHTML = `<tr><td colspan="11" class="mute" style="text-align:center; padding:24px;">Loading data… if this persists, the widget may be loaded outside Monday.</td></tr>`;
 }
-
 function setProg(p){
   STATE.program = p;
   document.querySelectorAll(".chip[data-prog]").forEach(c => c.classList.toggle("active", c.dataset.prog === p));
   renderStaff();
 }
-
 function renderStaff(){
   if (!STATE.all || !STATE.all.length) { renderStaffPaneFallback(); return; }
   // Refresh dynamic header labels with historical baselines (computed in render())
@@ -1075,7 +1019,6 @@ function renderStaff(){
   const search = (document.getElementById("staff-search").value || "").toLowerCase();
   let data = computeStaffData(STATE.all, STATE.program);
   if (search) data = data.filter(s => s.name.toLowerCase().includes(search));
-
   // sort
   const dianRank = { "Underperforming": 0, "Inconsistent": 1, "Limited Data": 2, "On Track": 3 };
   const key = STATE.sortKey, dir = STATE.sortDir === "asc" ? 1 : -1;
@@ -1087,7 +1030,6 @@ function renderStaff(){
     if (key === "name") return a.name.localeCompare(b.name) * dir;
     return (a[key] - b[key]) * dir;
   });
-
   const tbody = document.getElementById("staff-tbody"); tbody.innerHTML = "";
   data.forEach((s, idx) => {
     const dBadge = s.diagnosis === "On Track" ? "good" : s.diagnosis === "Inconsistent" ? "warn" : s.diagnosis === "Limited Data" ? "" : "bad";
@@ -1110,12 +1052,10 @@ function renderStaff(){
     row.onclick = () => toggleDetail(row, s);
     tbody.appendChild(row);
   });
-
   if (!data.length) {
     tbody.innerHTML = `<tr><td colspan="11" class="mute" style="text-align:center; padding:24px;">No staff match your filters.</td></tr>`;
   }
 }
-
 function toggleDetail(row, s){
   const next = row.nextSibling;
   if (next && next.classList && next.classList.contains("detail")) {
@@ -1126,7 +1066,6 @@ function toggleDetail(row, s){
   // close any other open detail rows
   document.querySelectorAll(".staff-row.expanded").forEach(r => { r.classList.remove("expanded"); if (r.nextSibling && r.nextSibling.classList && r.nextSibling.classList.contains("detail")) r.nextSibling.remove(); });
   row.classList.add("expanded");
-
   const detail = document.createElement("tr");
   detail.className = "detail";
   const eventsRows = s.recent.map(e => `
@@ -1141,7 +1080,6 @@ function toggleDetail(row, s){
       <td class="num">${e.mailing || '—'}</td>
       <td class="num">${e.interplay || '—'}</td>
     </tr>`).join("");
-
   detail.innerHTML = `<td colspan="8">
     <p class="meta-row">${s.name} · ${s.eventCount} events (${s.eecCount} EEC / ${s.coOnlyCount} CO / ${s.iqpOnlyCount} IQP) · ${s.totalContacts.toLocaleString()} total contacts · ${s.engagedPct}% engagement · <strong>Score ${s.compositeScore ?? '—'}%</strong> = (core ${s.coreScore ?? '—'}% × 2 + bonus ${s.bonusScore ?? '—'}%) ÷ 3</p>
     <div class="breakdown">
@@ -1155,7 +1093,6 @@ function toggleDetail(row, s){
   row.parentNode.insertBefore(detail, row.nextSibling);
   if (window.lucide && typeof lucide.createIcons === "function") lucide.createIcons();
 }
-
 // Sort header clicks
 document.querySelectorAll("table.staff th[data-sort]").forEach(th => {
   th.onclick = () => {
@@ -1167,7 +1104,6 @@ document.querySelectorAll("table.staff th[data-sort]").forEach(th => {
     renderStaff();
   };
 });
-
 // Tab clicks
 document.querySelectorAll(".tab").forEach(t => {
   t.onclick = () => {
@@ -1177,7 +1113,6 @@ document.querySelectorAll(".tab").forEach(t => {
     document.getElementById("pane-" + t.dataset.tab).classList.add("active");
   };
 });
-
 function renderAll(){
   const { start, end, label } = getActiveRange();
   const rangeText = fmtRange(start, end);
@@ -1207,7 +1142,6 @@ function renderAll(){
   // Convert any `data-lucide` placeholders just injected by the renders above.
   if (window.lucide && typeof lucide.createIcons === "function") lucide.createIcons();
 }
-
 async function refresh(){
   try {
     const items = await fetchAll();
@@ -1220,7 +1154,6 @@ async function refresh(){
     render(null, false);
   }
 }
-
 // initialize range chips on first load
 setRange("last-week");
 refresh();
