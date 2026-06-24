@@ -317,6 +317,9 @@
 </div>
 <script>
 const BOARD_ID = 7594026969;
+  
+const WORKER_URL = "/api/kpi"; // Vercel proxy (same domain). Blank = use in-Monday SDK session.
+
 const COLS = {
   eventName: "short_text0__1",
   eventDate: "date__1",
@@ -1159,18 +1162,30 @@ function renderAll(){
   // Convert any `data-lucide` placeholders just injected by the renders above.
   if (window.lucide && typeof lucide.createIcons === "function") lucide.createIcons();
 }
-async function refresh(){
-  try {
-    const items = await fetchAll();
-    if (items) { render(items, true); return; }
-    render(null, false);
-  } catch (e) {
-    console.error("Live fetch failed:", e);
-    document.getElementById("status-label").textContent = "Live fetch failed · showing reference";
-    document.getElementById("status-label").style.color = "var(--bad-text)";
-    render(null, false);
+async function fetchAll(){
+  let allItems;
+  if (WORKER_URL) {
+    const res = await fetch(WORKER_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("Proxy fetch failed: " + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    allItems = data.items || [];
+  } else {
+    const firstQ = `query($board:[ID!]) { boards(ids:$board) { items_page(limit:500) { cursor items { id name column_values { id text value } } } } }`;
+    const first = await mondayQuery(firstQ, { board: [String(BOARD_ID)] });
+    let page = first.boards[0].items_page;
+    allItems = page.items || [];
+    let cursor = page.cursor;
+    let safety = 0;
+    while (cursor && safety < 20) {
+      const nextQ = `query($cursor:String!) { next_items_page(limit:500, cursor:$cursor) { cursor items { id name column_values { id text value } } } }`;
+      const next = await mondayQuery(nextQ, { cursor });
+      allItems = allItems.concat(next.next_items_page.items || []);
+      cursor = next.next_items_page.cursor;
+      safety++;
+    }
   }
-}
+  return allItems.map(it => {
 // initialize range chips on first load
 setRange("last-week");
 refresh();
