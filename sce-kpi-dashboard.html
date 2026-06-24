@@ -1,0 +1,1191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SCE KPI Dashboard</title>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/monday-sdk-js@0.5.6/dist/main.js"></script><!--
+  SCE KPI Dashboard — Embeddable for Monday.com (SDK-authenticated, zero secrets)
+  Tabs: Period Snapshot + Staff Performance (program-aware diagnosis)
+  Setup:
+  1. Host the file (GitHub Pages recommended — push to repo, enable Pages).
+  2. Monday → Developers → Build App → add Dashboard Widget feature → set URL to hosted file.
+  3. Install app on your workspace → add widget to a dashboard.
+  4. Done. Monday hands the iframe a session token at runtime; viewers see data
+     automatically, no token entry. Auto-refreshes every 5 min.
+  Dev fallback: when loaded outside Monday (e.g. file://, localhost), the SDK has
+  no session token, so API calls fail and the page shows the FALLBACK reference week.
+  To test live data locally, open the console and run `monday.setToken("YOUR_TOKEN")`
+  then call `refresh()`.
+-->
+<style>
+  :root {
+    /* Dark mode — warm charcoal surfaces, Yale Blue + Cinnabar as accents only */
+    --bg: #1A1612; --surface: #261F1A; --surface-2: #332921; --surface-3: #3F3329;
+    --border: rgba(237,211,196,0.08); --border-strong: rgba(237,211,196,0.18);
+    --text: #EDD3C4; --text-muted: #B8A797; --text-tertiary: #8A7A6C;
+    --good-bg: #1F4D3D; --good-fg: #D9F0E5; --good-text: #5DD4A6;
+    --warn-bg: #6B4515; --warn-fg: #FAEEDA; --warn-text: #F0B654;
+    --bad-bg: #5C1F1A; --bad-fg: #FCEBEB; --bad-text: #F24236;
+    --accent: #F24236; --accent-bg: #3A1F1B;
+    --accent-2: #6FA8BF; /* lighter Yale Blue tint for chips/links on dark */
+    --radius: 8px; --radius-lg: 12px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      /* Light mode — warm Powder-Petal-tinted whites, Yale Blue + Cinnabar accents */
+      --bg: #FAF5F0; --surface: #FFFFFF; --surface-2: #F4ECE3; --surface-3: #EDD3C4;
+      --border: rgba(8,65,92,0.10); --border-strong: rgba(8,65,92,0.22);
+      --text: #1F2937; --text-muted: #6B818C; --text-tertiary: #97A3AB;
+      --good-bg: #DCEFE2; --good-fg: #1B5E3A; --good-text: #1B5E3A;
+      --warn-bg: #FBE9CB; --warn-fg: #8A5A1A; --warn-text: #8A5A1A;
+      --bad-bg: #FCE0DC; --bad-fg: #A8261A; --bad-text: #C2342A;
+      --accent: #08415C; --accent-bg: #DEE9EE;
+      --accent-2: #F24236; /* Cinnabar for secondary pops in light mode */
+    }
+  }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--font); }
+  .card { max-width: 1200px; margin: 16px auto; padding: 20px; background: var(--bg); }
+  .header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 14px; border-bottom: 0.5px solid var(--border); margin-bottom: 16px; }
+  .live { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #1D9E75; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+  .live-label { font-size: 11px; color: var(--good-text); letter-spacing: 0.06em; text-transform: uppercase; font-weight: 500; }
+  .title { font-size: 18px; font-weight: 500; margin: 0; }
+  .subtitle { font-size: 13px; color: var(--text-muted); margin: 2px 0 0; }
+  .right { text-align: right; flex-shrink: 0; }
+  .right-label { font-size: 11px; color: var(--text-tertiary); margin: 0; text-transform: uppercase; letter-spacing: 0.06em; }
+  .right-val { font-size: 13px; margin: 2px 0 0; font-weight: 500; }
+  button { font-family: var(--font); }
+  .tabs { display: flex; gap: 4px; border-bottom: 0.5px solid var(--border); margin-bottom: 20px; }
+  .tab { background: transparent; border: none; padding: 10px 16px; color: var(--text-muted); font-size: 13px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .pane { display: none; }
+  .pane.active { display: block; }
+  .hero { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 12px; }
+  .tile { background: var(--surface); border-radius: var(--radius); padding: 14px; min-width: 0; }
+  .tile-label { font-size: 11px; color: var(--text-muted); margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .tile-value { font-size: 28px; font-weight: 500; margin: 0; line-height: 1; }
+  .tile-foot { font-size: 11px; color: var(--text-tertiary); margin: 6px 0 0; }
+  h2 { font-size: 13px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 28px 0 4px; }
+  .h2-sub { font-size: 12px; color: var(--text-tertiary); margin: 0 0 12px; }
+  table.kpi { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--surface); border-radius: var(--radius-lg); overflow: hidden; }
+  table.kpi thead tr { border-bottom: 0.5px solid var(--border-strong); }
+  table.kpi th { text-align: left; padding: 12px 14px; font-weight: 500; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  table.kpi th.num, table.kpi td.num { text-align: right; }
+  table.kpi td { padding: 14px; border-bottom: 0.5px solid var(--border); }
+  table.kpi tbody tr:last-child td { border-bottom: none; }
+  .strong { font-weight: 500; }
+  .pos { color: var(--good-text); font-weight: 500; }
+  .neg { color: var(--bad-text); font-weight: 500; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .badge.good { background: var(--good-bg); color: var(--good-fg); }
+  .badge.warn { background: var(--warn-bg); color: var(--warn-fg); }
+  .badge.bad { background: var(--bad-bg); color: var(--bad-fg); }
+  .mute { color: var(--text-tertiary); }
+  table.events { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--surface); border-radius: var(--radius-lg); overflow: hidden; margin-top: 8px; }
+  table.events thead tr { border-bottom: 0.5px solid var(--border-strong); }
+  table.events th, table.events td { padding: 10px 14px; }
+  table.events th { text-align: left; font-weight: 500; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  table.events tbody tr { border-bottom: 0.5px solid var(--border); }
+  table.events tbody tr:last-child { border-bottom: none; }
+  .pct-pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+  .signup-cell { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; min-width: 180px; }
+  .signup-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); border: 0.5px solid var(--border); font-size: 11px; font-weight: 500; color: var(--text); white-space: nowrap; }
+  .signup-pill [data-lucide] { width: 11px; height: 11px; color: var(--accent); }
+  .target-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; font-weight: 400; }
+  .footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; padding-top: 10px; border-top: 0.5px solid var(--border); font-size: 11px; color: var(--text-tertiary); }
+  .hidden { display: none; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; align-items: center; }
+  .controls input, .controls select { background: var(--surface); border: 0.5px solid var(--border-strong); color: var(--text); padding: 8px 12px; border-radius: var(--radius); font-size: 13px; font-family: var(--font); }
+  .chip { background: var(--surface); padding: 6px 12px; border-radius: 999px; font-size: 12px; color: var(--text-muted); border: 0.5px solid var(--border); cursor: pointer; }
+  .chip.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
+  .range-bar { background: var(--surface); border-radius: var(--radius-lg); padding: 12px 14px; margin-bottom: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .range-bar .label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; margin-right: 4px; }
+  .range-bar .dates { display: flex; gap: 6px; align-items: center; margin-left: auto; }
+  .range-bar input[type=date] { background: var(--bg); border: 0.5px solid var(--border-strong); color: var(--text); padding: 6px 8px; border-radius: var(--radius); font-size: 12px; font-family: var(--font); }
+  .range-bar .summary { font-size: 13px; font-weight: 600; color: var(--accent); background: var(--accent-bg); padding: 4px 10px; border-radius: var(--radius); margin-left: 8px; letter-spacing: 0.01em; }
+  .heading-range { color: var(--accent); font-weight: 600; }
+  /* Expandable "How the score is calculated" disclosure in the Staff Performance legend. */
+  .source-details { display: block; margin-top: 8px; }
+  .source-details summary { cursor: pointer; color: var(--accent); font-size: 11px; font-weight: 600; user-select: none; padding: 4px 0; letter-spacing: 0.01em; list-style: none; display: inline-flex; align-items: center; gap: 4px; }
+  .source-details summary::before { content: "▸"; font-size: 9px; transition: transform 0.15s ease; }
+  .source-details[open] summary::before { transform: rotate(90deg); }
+  .source-details summary::-webkit-details-marker { display: none; }
+  .source-details summary:hover { text-decoration: underline; }
+  .source-body { margin-top: 8px; padding: 12px 14px; background: var(--surface); border-radius: var(--radius); border-left: 3px solid var(--accent); font-size: 12px; line-height: 1.5; color: var(--text-muted); }
+  .source-body p { margin: 0 0 8px; }
+  .source-body p:last-child { margin-bottom: 0; }
+  .source-body ul { margin: 4px 0 8px 18px; padding: 0; }
+  .source-body ul li { margin-bottom: 4px; }
+  .source-body .example { display: block; margin-top: 4px; padding: 4px 8px; background: var(--bg); border-radius: 4px; font-size: 11px; color: var(--text-tertiary); }
+  .source-body .source-foot { font-size: 11px; font-style: italic; color: var(--text-tertiary); }
+  /* Zero-signup notification — flags events where every program-relevant sign-up came back 0. */
+  .zero-alert-badge { display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; padding: 4px 10px; border-radius: 999px; background: var(--bad-bg); color: var(--bad-fg); font-size: 12px; font-weight: 600; vertical-align: middle; letter-spacing: 0.01em; }
+  .zero-alert-badge [data-lucide] { width: 13px; height: 13px; }
+  table.events tr.zero-row { background: color-mix(in srgb, var(--bad-bg) 30%, transparent); }
+  table.events tr.zero-row td { border-left: 0; }
+  table.events tr.zero-row td:first-child { box-shadow: inset 3px 0 0 var(--bad-text); }
+  td .row-icon.zero-icon { color: var(--bad-text); }
+  table.staff { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--surface); border-radius: var(--radius-lg); overflow: hidden; }
+  table.staff thead tr { border-bottom: 0.5px solid var(--border-strong); }
+  table.staff th { text-align: left; padding: 10px 12px; font-weight: 500; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; user-select: none; }
+  table.staff th.num { text-align: right; }
+  table.staff th:hover { color: var(--text); }
+  table.staff th .sort-arrow { font-size: 9px; margin-left: 4px; opacity: 0.5; }
+  table.staff th.sorted .sort-arrow { opacity: 1; color: var(--accent); }
+  table.staff td { padding: 12px; border-bottom: 0.5px solid var(--border); }
+  table.staff td.num { text-align: right; }
+  table.staff tbody tr.staff-row { cursor: pointer; }
+  table.staff tbody tr.staff-row:hover { background: var(--surface-2); }
+  table.staff tbody tr.staff-row.expanded { background: var(--surface-2); }
+  table.staff tbody tr.detail td { background: var(--surface-3); padding: 16px 20px; border-bottom: 0.5px solid var(--border-strong); }
+  .breakdown { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .br-tile { background: var(--surface); border-radius: var(--radius); padding: 10px 12px; }
+  .br-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 4px; }
+  .br-val { font-size: 16px; font-weight: 500; margin: 0; }
+  .br-val.muted { color: var(--text-tertiary); }
+  .br-foot { font-size: 10px; color: var(--text-tertiary); margin: 3px 0 0; }
+  .meta-row { font-size: 11px; color: var(--text-tertiary); margin: 0 0 8px; }
+  @media (max-width: 720px) {
+    .hero { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    table.kpi th, table.kpi td, table.staff th, table.staff td { padding: 8px 6px; font-size: 11px; }
+  }
+  /* Lucide icons — inline-aligned with text, color inherited */
+  [data-lucide], .lucide { width: 1em; height: 1em; vertical-align: -2px; stroke-width: 2; color: currentColor; }
+  .tile-label [data-lucide], .br-label [data-lucide] { width: 14px; height: 14px; margin-right: 6px; vertical-align: -3px; color: var(--accent); }
+  .badge [data-lucide] { width: 12px; height: 12px; margin-right: 4px; vertical-align: -2px; }
+  .kpi-icon { width: 18px; height: 18px; vertical-align: -4px; margin-right: 8px; color: var(--accent); }
+  td .row-icon { width: 14px; height: 14px; vertical-align: -2px; margin-right: 6px; color: var(--text-tertiary); }
+  /* Micro-interactions — wobble on hover, fade in on first paint */
+  @keyframes wobble {
+    0%, 100% { transform: rotate(0deg) translateY(0); }
+    20% { transform: rotate(-1.2deg) translateY(-1px); }
+    60% { transform: rotate(1.2deg) translateY(-2px); }
+    80% { transform: rotate(-0.6deg) translateY(-1px); }
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .tile { transition: box-shadow 0.2s ease, border-color 0.2s ease; border: 1px solid transparent; animation: fadeInUp 0.45s ease-out both; }
+  .tile:hover { animation: wobble 0.5s ease-in-out; border-color: var(--accent); box-shadow: 0 6px 18px rgba(8,65,92,0.12); }
+  .tile:nth-child(2) { animation-delay: 0.05s; }
+  .tile:nth-child(3) { animation-delay: 0.1s; }
+  .tile:nth-child(4) { animation-delay: 0.15s; }
+  .tile:nth-child(5) { animation-delay: 0.2s; }
+  .tile:nth-child(6) { animation-delay: 0.25s; }
+  .tile:nth-child(7) { animation-delay: 0.3s; }
+  .chip { transition: transform 0.15s ease, background 0.15s ease; }
+  .chip:hover { transform: scale(1.06); background: var(--surface-2); }
+  .badge { transition: transform 0.15s ease; }
+  table.kpi tbody tr, table.events tbody tr, table.staff tbody tr.staff-row { transition: background 0.15s ease; }
+  table.kpi tbody tr:hover, table.events tbody tr:hover { background: var(--surface-2); }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div style="min-width:0; flex: 1;">
+      <div class="live"><span class="live-dot"></span><span class="live-label" id="status-label">Connecting...</span></div>
+      <p class="title">SCE KPI dashboard</p>
+      <p class="subtitle" id="subtitle">H-MET reporting for Southern California Edison</p>
+    </div>
+    <div class="right">
+      <p class="right-label">Published</p>
+      <p class="right-val" id="published">—</p>
+    </div>
+  </div>
+  <div class="range-bar">
+    <span class="label">Period</span>
+    <span class="chip active" data-range="last-week" onclick="setRange('last-week')">Last week</span>
+    <span class="chip" data-range="this-week" onclick="setRange('this-week')">This week</span>
+    <span class="chip" data-range="last-month" onclick="setRange('last-month')">Last month</span>
+    <span class="chip" data-range="this-month" onclick="setRange('this-month')">This month</span>
+    <span class="chip" data-range="last-6w" onclick="setRange('last-6w')">Last 6 weeks</span>
+    <span class="chip" data-range="ytd" onclick="setRange('ytd')">This year</span>
+    <span class="chip" data-range="all-time" onclick="setRange('all-time')">All time</span>
+    <span class="chip" data-range="custom" onclick="setRange('custom')">Custom</span>
+    <div class="dates">
+      <input id="range-start" type="date" onchange="onCustomDate()" />
+      <span class="mute">→</span>
+      <input id="range-end" type="date" onchange="onCustomDate()" />
+    </div>
+    <span class="summary" id="range-summary">—</span>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="week">Period snapshot</button>
+    <button class="tab" data-tab="staff">Staff performance</button>
+  </div>
+  <!-- ============== WEEK TAB ============== -->
+  <div class="pane active" id="pane-week">
+    <div class="hero">
+      <div class="tile"><p class="tile-label"><i data-lucide="calendar-days"></i>Total events</p><p class="tile-value" id="m-events">—</p><p class="tile-foot" id="m-events-foot">&nbsp;</p></div>
+      <div class="tile"><p class="tile-label"><i data-lucide="users"></i>Total contacts</p><p class="tile-value" id="m-contacts">—</p><p class="tile-foot" id="m-contacts-foot">&nbsp;</p></div>
+      <div class="tile"><p class="tile-label"><i data-lucide="smile"></i>Meaningful contacts</p><p class="tile-value" id="m-meaningful">—</p><p class="tile-foot" id="m-meaningful-foot">&nbsp;</p></div>
+      <div class="tile"><p class="tile-label"><i data-lucide="smile-plus"></i>% engaged</p><p class="tile-value" id="m-engaged">—</p><p class="tile-foot" id="m-engaged-foot">&nbsp;</p></div>
+      <div class="tile"><p class="tile-label"><i data-lucide="piggy-bank"></i>CARE / FERA</p><p class="tile-value" id="m-carefera">—</p><p class="tile-foot" id="m-carefera-foot">&nbsp;</p></div>
+      <div class="tile"><p class="tile-label"><i data-lucide="heart-pulse"></i>Medical Baseline</p><p class="tile-value" id="m-mbl">—</p><p class="tile-foot" id="m-mbl-foot">&nbsp;</p></div>
+      <div class="tile"><p class="tile-label"><i data-lucide="house-plug"></i>ESA</p><p class="tile-value" id="m-esa">—</p><p class="tile-foot" id="m-esa-foot">&nbsp;</p></div>
+    </div>
+    <h2>KPI snapshot — <span id="kpi-heading-range" class="heading-range">this week</span></h2>
+    <p class="h2-sub" id="kpi-source">—</p>
+    <p class="h2-sub" style="margin-top:-6px;">Targets show <em>per-event basis</em> underneath. Fixed targets come from SCE's weekly Excel benchmarks; CARE/FERA, MBL, and ESA have no SCE target yet, so we use a minimum bar of <strong>1 per eligible event</strong> until SCE sets a goal.</p>
+    <table class="kpi">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th class="num">Actual</th>
+          <th class="num">Target</th>
+          <th class="num">vs Target</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="kpi-tbody"></tbody>
+    </table>
+    <h2>Events — <span id="events-heading-range" class="heading-range">this week</span></h2>
+    <table class="events">
+      <thead>
+        <tr>
+          <th>Event</th>
+          <th>Date</th>
+          <th>Program</th>
+          <th class="num">Contacts</th>
+          <th class="num">Meaningful</th>
+          <th>Program sign-ups</th>
+        </tr>
+      </thead>
+      <tbody id="events-tbody"></tbody>
+    </table>
+  </div>
+  <!-- ============== STAFF TAB ============== -->
+  <div class="pane" id="pane-staff">
+    <h2>Staff performance — rolling window</h2>
+    <div class="h2-sub" id="staff-source">
+      Each staff is graded against the per-event goals — not against teammates. <strong>≥95% On Track · 65–94% Inconsistent · &lt;65% Underperforming · &lt;3 events Limited Data.</strong> Turnout isn't counted (staff don't control who walks in).
+      <details class="source-details">
+        <summary>How the score is calculated</summary>
+        <div class="source-body">
+          <p><strong>Step 1 · Score each KPI.</strong> Take the staff's average for that KPI and compare it to the per-event goal: <em>(avg ÷ goal) × 100%</em>. Capped at 150%, so going way over goal helps but doesn't snowball.
+            <span class="example">Example: a staff averaging Mail = 6 on EEC events scores 6 ÷ 4 = <strong>150%</strong>.</span>
+          </p>
+          <p><strong>Step 2 · Group into two tiers.</strong></p>
+          <ul>
+            <li><strong>Core goals (counts double)</strong> — App ≥ 3, TLL ≥ 1, Mail ≥ 4.</li>
+            <li><strong>Bonus goals (counts single)</strong> — Interplay ≥ 1, CARE/FERA ≥ 1, MBL ≥ 1, ESA ≥ 1. Newer to track, so missing them docks the staff less <em>and</em> hitting them helps less.</li>
+          </ul>
+          <p><strong>Step 3 · Combine.</strong> Final score = <em>(core average × 2 + bonus average) ÷ 3</em>. A staff who's strong on core but weak on bonus won't get hammered.</p>
+          <p><strong>Step 4 · Only relevant KPIs count.</strong> TLL / Mail / Interplay → EEC events (Lionel). App → CO + IQP events (Ada + Veronica). CARE/FERA + ESA → IQP-lane events (SCE Requester = Veronica Diaz). MBL → events tagged "Medical Baseline (MBL)".</p>
+          <p class="source-foot">Click any staff row to see their core and bonus scores broken out.</p>
+        </div>
+      </details>
+    </div>
+    <div class="controls">
+      <input id="staff-search" type="text" placeholder="Search staff..." oninput="renderStaff()" />
+      <span class="chip active" data-prog="all" onclick="setProg('all')">All</span>
+      <span class="chip" data-prog="eec" onclick="setProg('eec')">EEC</span>
+      <span class="chip" data-prog="co"  onclick="setProg('co')">CO</span>
+      <span class="chip" data-prog="iqp" onclick="setProg('iqp')">IQP</span>
+      <span class="summary mute" style="margin-left: auto; font-size: 11px;">Attribution: each staff listed in "Which staff members attended" gets full event credit. Same as Excel.</span>
+    </div>
+    <table class="staff" id="staff-table">
+      <thead>
+        <tr>
+          <th data-sort="diagnosis" class="sorted">Staff <span class="sort-arrow">▼</span></th>
+          <th data-sort="events" class="num">Events <span class="sort-arrow">▼</span></th>
+          <th data-sort="avgContacts" class="num">Avg Contacts <span class="sort-arrow">▼</span></th>
+          <th data-sort="avgApp" class="num">Avg App <span class="mute">/3</span><span class="sort-arrow">▼</span></th>
+          <th data-sort="avgTll" class="num">Avg TLL <span class="mute">/1</span><span class="sort-arrow">▼</span></th>
+          <th data-sort="avgMail" class="num">Avg Mail <span class="mute">/4</span><span class="sort-arrow">▼</span></th>
+          <th data-sort="avgInter" class="num">Avg Interplay <span class="mute">/1</span><span class="sort-arrow">▼</span></th>
+          <th data-sort="avgCareFera" class="num">Avg CARE/FERA <span class="mute" id="hdr-carefera-base">/—</span><span class="sort-arrow">▼</span></th>
+          <th data-sort="avgMbl" class="num">Avg MBL <span class="mute" id="hdr-mbl-base">/—</span><span class="sort-arrow">▼</span></th>
+          <th data-sort="avgEsa" class="num">Avg ESA <span class="mute" id="hdr-esa-base">/—</span><span class="sort-arrow">▼</span></th>
+          <th data-sort="diagnosis">Diagnosis <span class="sort-arrow">▼</span></th>
+        </tr>
+      </thead>
+      <tbody id="staff-tbody"></tbody>
+    </table>
+  </div>
+  <div class="footer">
+    <span id="source-line">Source: Monday board 7594026969 · H-MET MEU Event Report Forms</span>
+    <span id="sync-line">Last sync: —</span>
+  </div>
+</div>
+<script>
+const BOARD_ID = 7594026969;
+const WORKER_URL = "/api/kpi"; // Vercel proxy (same domain). Blank = use in-Monday SDK session.
+const COLS = {
+  eventName: "short_text0__1",
+  eventDate: "date__1",
+  status: "status8__1",
+  contacts: "number__1",
+  meaningful: "number0__1",
+  appDownloads: "number7__1",
+  tll: "number6__1",
+  mailing: "number1__1",
+  interplay: "numbert53d6h04",
+  inLanguage: "number74__1",
+  careFera: "numberxxpvj0ip",
+  esa: "numbero8jm2ohq",
+  mbl: "number9kpyudx0",
+  program: "multi_select__1",
+  staff: "multi_select3__1",
+  requester: "single_select__1",  // SCE Requester — used to classify events (Lionel=EEC, Ada=CO, Veronica=IQP)
+};
+// FIX (timezone off-by-one): parse a Monday date column ("YYYY-MM-DD") as LOCAL
+// midnight. `new Date("2026-06-01")` parses as UTC midnight, which in US time zones
+// reads as the PREVIOUS calendar day once compared/displayed in local time. That
+// shifted every event back a day and silently dropped events landing on the first
+// day of a range (e.g. a Mon-Jun-1 event fell before the "Last week" start boundary).
+// Building the Date from explicit Y/M/D parts pins it to local midnight, so the
+// calendar date the staffer entered is the calendar date the dashboard uses.
+function parseLocalDate(s){
+  if (!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
+}
+// SCE requester → program class. Adam confirmed: there are no "Mixed" events; the
+// SCE-side program lead deterministically identifies which program family the
+// event belongs to. Unknown / blank requester falls through to "Other".
+// IQP is a first-class lane here, exactly like EEC and CO — it is decided by the
+// SCE Requester (Veronica Diaz), NOT by whether the IQP promo checkbox was ticked.
+const REQUESTER_CLASS = {
+  "Lionel Moreno": "EEC",
+  "Ada Tsui":      "CO",
+  "Veronica Diaz": "IQP",
+};
+// `perEvent` is the per-event benchmark from Adam's Excel "KPI Benchmarks" sheet.
+// The team target = perEvent × (count of eligible events in range). That way the
+// total scales with the actual program mix rather than an assumed weekly volume,
+// so the team isn't penalized when fewer events of a given type happened.
+// `eligibleClasses` says which program classes contribute to the eligible-event pool.
+// `baselineKey` (CARE/FERA, MBL, ESA) uses a dynamic per-event minimum + eligibility
+// on each event. CARE/FERA and ESA are IQP-lane programs, so their eligible pool is
+// IQP-CLASS events (requester = Veronica Diaz). MBL stays program-tag based since it
+// can legitimately appear at events of any lane.
+const KPI_DEFS = [
+  { key: "avgContacts",  label: "Avg Contacts per Event",  perEvent: 100, unit: "contacts", isAvg: true },
+  { key: "appDownloads", label: "SCE App Downloads",       perEvent: 3,   unit: "downloads", eligibleClasses: ["CO","IQP"] },
+  { key: "tll",          label: "TLL Registrations",       perEvent: 1,   unit: "regs",      eligibleClasses: ["EEC"] },
+  { key: "mailing",      label: "Mailing List Sign-Ups",   perEvent: 4,   unit: "sign-ups",  eligibleClasses: ["EEC"] },
+  { key: "interplay",    label: "Interplay Sign-Ups",      perEvent: 1,   unit: "sign-ups",  eligibleClasses: ["EEC"] },
+  // CARE/FERA + ESA → IQP-LANE events (scope "IQP" is class-based, see eventEligibleForDef).
+  // MBL → program-tag based ("Medical Baseline (MBL)") since it has no requester lane.
+  { key: "careFera", label: "CARE / FERA Enrollments", baselineKey: "careFera", unit: "enrollments", scope: "IQP",  eligibleLabel: "IQP",        eligibleTags: ["Income-Qualified Programs (IQP)"] },
+  { key: "mbl",      label: "Medical Baseline",        baselineKey: "mbl",      unit: "enrollments", scope: "MBL",  eligibleLabel: "MBL-tagged", eligibleTags: ["Medical Baseline (MBL)"] },
+  { key: "esa",      label: "ESA Enrollments",         baselineKey: "esa",      unit: "enrollments", scope: "IQP",  eligibleLabel: "IQP",        eligibleTags: ["Income-Qualified Programs (IQP)"] },
+];
+function eventPromotes(event, tags){
+  if (!event || !tags || !tags.length) return false;
+  const txt = event.program || "";
+  return tags.some(t => txt.includes(t));
+}
+// IQP eligibility is CLASS-based, not tag-based. An event counts as IQP only when its
+// programClass is "IQP" (SCE Requester = Veronica Diaz, or the program-tag fallback when
+// the requester is blank). Ticking the "Income-Qualified Programs (IQP)" promo checkbox at
+// a CO or EEC event does NOT make it an IQP event — that was inflating the IQP event count.
+function isIqpEvent(event){ return !!event && event.programClass === "IQP"; }
+// Per-KPI eligibility: IQP-scoped metrics (CARE/FERA, ESA) use the event's lane/class;
+// every other tag-scoped metric (e.g. MBL) still matches on the Programs-Promoted text.
+function eventEligibleForDef(event, def){
+  if (def && def.scope === "IQP") return isIqpEvent(event);
+  return eventPromotes(event, def && def.eligibleTags);
+}
+// Per-event score: each applicable KPI gets a 0-100% score (actual/threshold, capped
+// at 100). Event score = average of those per-KPI scores. Eligibility is lane/tag-based —
+// only KPIs that apply to the event actually count. Returns null if no
+// applicable KPIs on the event.
+function eventScore(event, baselines){
+  const scores = [];
+  const isEec    = event.programClass === "EEC";
+  const isCoiqp  = event.programClass === "CO" || event.programClass === "IQP";
+  const pct = (val, threshold) => threshold > 0 ? Math.min(val / threshold, 1) * 100 : 0;
+  if (isEec) {
+    scores.push(pct(event.tll       || 0, 1));
+    scores.push(pct(event.mailing   || 0, 4));
+    scores.push(pct(event.interplay || 0, 1));
+  }
+  if (isCoiqp) {
+    scores.push(pct(event.appDownloads || 0, 3));
+    if (isIqpEvent(event) && (baselines.careFera || 0) > 0) {
+      scores.push(pct(event.careFera || 0, baselines.careFera));
+    }
+    if (eventPromotes(event, ["Medical Baseline (MBL)"]) && (baselines.mbl || 0) > 0) {
+      scores.push(pct(event.mbl || 0, baselines.mbl));
+    }
+    if (isIqpEvent(event) && (baselines.esa || 0) > 0) {
+      scores.push(pct(event.esa || 0, baselines.esa));
+    }
+  }
+  if (scores.length === 0) return null;
+  const avg = scores.reduce((a,b) => a+b, 0) / scores.length;
+  return { score: avg, kpiCount: scores.length };
+}
+// Kept for backward compatibility but unused — eventScore replaced this binary check.
+function eventPassResult(event, baselines){
+  const checks = [];
+  const isEec    = event.programClass === "EEC";
+  const isCoiqp  = event.programClass === "CO" || event.programClass === "IQP";
+  if (isEec) {
+    checks.push((event.tll       || 0) >= 1);
+    checks.push((event.mailing   || 0) >= 4);
+    checks.push((event.interplay || 0) >= 1);
+  }
+  if (isCoiqp) {
+    checks.push((event.appDownloads || 0) >= 3);
+    if (isIqpEvent(event) && (baselines.careFera || 0) > 0) {
+      checks.push((event.careFera || 0) >= baselines.careFera);
+    }
+    if (eventPromotes(event, ["Medical Baseline (MBL)"]) && (baselines.mbl || 0) > 0) {
+      checks.push((event.mbl || 0) >= baselines.mbl);
+    }
+    if (isIqpEvent(event) && (baselines.esa || 0) > 0) {
+      checks.push((event.esa || 0) >= baselines.esa);
+    }
+  }
+  if (checks.length === 0) return null;
+  const met = checks.filter(Boolean).length;
+  return { met, total: checks.length, passes: (met / checks.length) >= 0.5 };
+}
+// Historical per-event baselines (avg per eligible event across ALL loaded data).
+// Populated by computeBaselines() after the data fetch; used as the per-event
+// target until SCE/Adam set explicit ones.
+let BASELINES = { careFera: 0, mbl: 0, esa: 0 };
+// Per-metric Lucide icon slugs for the KPI Snapshot rows
+const KPI_ICONS = {
+  avgContacts:  "users",
+  appDownloads: "smartphone",
+  tll:          "wrench",
+  mailing:      "mail",
+  interplay:    "graduation-cap",
+  careFera:     "piggy-bank",   // CARE/FERA = bill discount → financial assistance
+  mbl:          "heart-pulse",  // Medical Baseline = electricity allowance for medical needs
+  esa:          "house-plug",   // ESA = free energy-efficient appliances + home upgrades
+};
+function computeBaselines(items){
+  // For each dynamic-target metric, average over ONLY events that are eligible for it.
+  // IQP-scoped metrics (CARE/FERA, ESA) average over IQP-lane events; MBL averages over
+  // MBL-tagged events. This gives an honest per-event rate.
+  const out = { careFera: 0, mbl: 0, esa: 0 };
+  KPI_DEFS.filter(d => d.baselineKey).forEach(def => {
+    const eligible = items.filter(i => eventEligibleForDef(i, def));
+    if (!eligible.length) { out[def.baselineKey] = 0; return; }
+    const sum = eligible.reduce((a, e) => a + (e[def.key] || 0), 0);
+    out[def.baselineKey] = +(sum / eligible.length).toFixed(2);
+  });
+  return out;
+}
+// Program-aware classification: which programs map to EEC vs CO/IQP focus
+// EEC programs — only tags unique to Energy Education Center events. "Energy Efficiency (EE)"
+// appears on almost every event regardless of program team, so it's not a reliable EEC signal
+// and was misclassifying IQP events as "Mixed".
+const EEC_PROGRAMS = ["Workforce Development/Education (WFD)", "Lending Libraries (LL)", "Building Electrification (BE)"];
+// IQP = explicit Income-Qualified Programs tag; CO = community-outreach-family tags (MBL/CARE/FERA/ESA) without IQP.
+const IQP_PROGRAMS = ["Income-Qualified Programs (IQP)"];
+const CO_PROGRAMS  = ["Medical Baseline (MBL)", "CARE", "FERA", "ESA"];
+// Programs whose KPI set is the CO/IQP one (App + CARE/MBL/ESA). Used for filtering & baselines.
+const COIQP_CLASSES = ["CO", "IQP"];  // Mixed deprecated — requester deterministically picks one lane.
+const FALLBACK = {
+  weekLabel: "May 18-24, 2026", publishedDate: "May 26, 2026",
+  source: "6 events · 11 person-events · week ending May 24, 2026 (reference data)",
+  totals: {
+    events: 6, contacts: 364, meaningful: 254, engagedPct: 69.8, avgContacts: 60.7,
+    appDownloads: 3, tll: 15, mailing: 96, interplay: 6,
+    careFera: 4, mbl: 7, esa: 2, coiqpEvents: 3,
+  },
+  events: [
+    { name: "Cesar Chavez Building Skills Presentation", date: "May 18", program: "EEC", programClass: "EEC", contacts: 50, meaningful: 50, pct: 100, tll: 15, mailing: 32, interplay: 2, appDownloads: 0, careFera: 0, mbl: 0, esa: 0 },
+    { name: "UEI Fresno ET Morning Presentation",        date: "May 19", program: "EEC", programClass: "EEC", contacts: 40, meaningful: 40, pct: 100, tll: 0,  mailing: 28, interplay: 1, appDownloads: 0, careFera: 0, mbl: 0, esa: 0 },
+    { name: "Bill Assistance & Energy-Saving Workshop",  date: "May 19", program: "IQP", programClass: "IQP", contacts: 26, meaningful: 17, pct: 65,  tll: 0,  mailing: 0,  interplay: 0, appDownloads: 1, careFera: 2, mbl: 3, esa: 1 },
+    { name: "CET Oxnard CTE Presentation",               date: "May 20", program: "EEC", programClass: "EEC", contacts: 47, meaningful: 47, pct: 100, tll: 0,  mailing: 18, interplay: 3, appDownloads: 0, careFera: 0, mbl: 0, esa: 0 },
+    { name: "Strathmore Resource Roundup",               date: "May 21", program: "IQP", programClass: "IQP", contacts: 106, meaningful: 58, pct: 55, tll: 0,  mailing: 8,  interplay: 0, appDownloads: 1, careFera: 1, mbl: 2, esa: 1 },
+    { name: "FoodLink Ivanhoe",                          date: "May 22", program: "CO",  programClass: "CO",  contacts: 95, meaningful: 42, pct: 44,  tll: 0,  mailing: 10, interplay: 0, appDownloads: 1, careFera: 1, mbl: 2, esa: 0 },
+  ],
+  allEvents: [],
+};
+let STATE = { all: [], lastFetched: null, sortKey: "diagnosis", sortDir: "asc", program: "all", rangePreset: "last-week", rangeStart: null, rangeEnd: null };
+function computeRange(preset){
+  const now = new Date(); now.setHours(0,0,0,0);
+  const day = now.getDay();
+  const thisMon = new Date(now); thisMon.setDate(now.getDate() - ((day + 6) % 7));
+  const ymd = d => d.toISOString().slice(0,10);
+  let start, end, label;
+  switch (preset) {
+    case "this-week":
+      start = thisMon; end = new Date(thisMon); end.setDate(thisMon.getDate() + 6);
+      label = "This week";
+      break;
+    case "last-week":
+      end = new Date(thisMon); end.setDate(thisMon.getDate() - 1);
+      start = new Date(end); start.setDate(end.getDate() - 6);
+      label = "Last week";
+      break;
+    case "this-month":
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      label = start.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      break;
+    case "last-month":
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0);
+      label = start.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      break;
+    case "last-6w":
+      end = new Date(thisMon); end.setDate(thisMon.getDate() - 1);
+      start = new Date(end); start.setDate(end.getDate() - 41);
+      label = "Last 6 weeks";
+      break;
+    case "ytd":
+      start = new Date(now.getFullYear(), 0, 1); end = new Date(now);
+      label = `${now.getFullYear()}`;
+      break;
+    case "all-time":
+      if (STATE.all && STATE.all.length) {
+        const dates = STATE.all.map(i => i.date).filter(Boolean);
+        start = dates.length ? new Date(Math.min(...dates.map(d => d.getTime()))) : new Date(2024, 0, 1);
+      } else {
+        start = new Date(2024, 0, 1);
+      }
+      end = new Date(now);
+      label = "All time";
+      break;
+    case "custom":
+      // FIX (timezone off-by-one): parse the YYYY-MM-DD inputs as local dates, not UTC.
+      start = STATE.rangeStart ? parseLocalDate(STATE.rangeStart) : new Date(thisMon);
+      end = STATE.rangeEnd ? parseLocalDate(STATE.rangeEnd) : new Date(now);
+      label = "Custom range";
+      break;
+  }
+  end.setHours(23,59,59,999);
+  return { start, end, label, ymd };
+}
+function setRange(preset){
+  STATE.rangePreset = preset;
+  document.querySelectorAll(".chip[data-range]").forEach(c => c.classList.toggle("active", c.dataset.range === preset));
+  if (preset !== "custom") {
+    const { start, end, ymd } = computeRange(preset);
+    document.getElementById("range-start").value = ymd(start);
+    document.getElementById("range-end").value = ymd(end);
+    STATE.rangeStart = ymd(start); STATE.rangeEnd = ymd(end);
+  } else {
+    // Seed custom-range state from whatever the inputs currently show, so the
+    // active range matches what's visible the moment the user clicks Custom.
+    const s = document.getElementById("range-start").value;
+    const e = document.getElementById("range-end").value;
+    if (s) STATE.rangeStart = s;
+    if (e) STATE.rangeEnd = e;
+  }
+  renderAll();
+}
+function onCustomDate(){
+  // Only update STATE when a value is actually present, so clearing one field
+  // mid-edit doesn't reset the active range to defaults.
+  const s = document.getElementById("range-start").value;
+  const e = document.getElementById("range-end").value;
+  if (s) STATE.rangeStart = s;
+  if (e) STATE.rangeEnd = e;
+  STATE.rangePreset = "custom";
+  document.querySelectorAll(".chip[data-range]").forEach(c => c.classList.toggle("active", c.dataset.range === "custom"));
+  renderAll();
+}
+// Monday SDK — used only as the in-Monday fallback when WORKER_URL is blank.
+const monday = mondaySdk();
+function getActiveRange(){
+  if (STATE.rangePreset === "custom" && STATE.rangeStart && STATE.rangeEnd) {
+    // FIX (timezone off-by-one): parse the YYYY-MM-DD inputs as local dates, not UTC.
+    const start = parseLocalDate(STATE.rangeStart); start.setHours(0,0,0,0);
+    const end = parseLocalDate(STATE.rangeEnd); end.setHours(23,59,59,999);
+    return { start, end, label: "Custom range" };
+  }
+  return computeRange(STATE.rangePreset || "last-week");
+}
+function fmtRange(s, e){
+  const o = { month: "short", day: "numeric" };
+  // Same month + same year: "May 25 – 31, 2026"  (matches Excel weekly format)
+  if (s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth()) {
+    return `${s.toLocaleDateString("en-US",o)} – ${e.getDate()}, ${e.getFullYear()}`;
+  }
+  // Same year, different month: "Apr 27 – May 3, 2026"
+  if (s.getFullYear() === e.getFullYear()) {
+    return `${s.toLocaleDateString("en-US",o)} – ${e.toLocaleDateString("en-US",o)}, ${e.getFullYear()}`;
+  }
+  // Different years
+  return `${s.toLocaleDateString("en-US",{...o, year:"numeric"})} – ${e.toLocaleDateString("en-US",{...o, year:"numeric"})}`;
+}
+function fmtDate(d){ return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); }
+function fmtNum(n){ return typeof n === "number" ? n.toLocaleString("en-US") : "—"; }
+function classifyProgram(programText) {
+  if (!programText) return "unknown";
+  const eec = EEC_PROGRAMS.some(p => programText.includes(p));
+  const iqp = IQP_PROGRAMS.some(p => programText.includes(p));
+  const co  = !iqp && CO_PROGRAMS.some(p => programText.includes(p));
+  const incomeQualifiedFamily = iqp || co;
+  if (eec && !incomeQualifiedFamily) return "EEC";
+  if (iqp && !eec) return "IQP";
+  if (co  && !eec) return "CO";
+  if (eec && incomeQualifiedFamily) return "Mixed";
+  return "Other";
+}
+// Wrap monday.api so the rest of the code stays unchanged. Throws on GraphQL errors.
+async function mondayQuery(query, variables){
+  const res = await monday.api(query, { variables });
+  if (res.errors && res.errors.length) throw new Error(res.errors[0].message);
+  return res.data;
+}
+async function fetchAll(){
+  let allItems;
+  if (WORKER_URL) {
+    // Public mode: read the board through the proxy. Works for anyone, no Monday
+    // session required — the Worker holds the token and returns read-only items.
+    const res = await fetch(WORKER_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("Proxy fetch failed: " + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    allItems = data.items || [];
+  } else {
+    // Fallback: opened inside Monday with no proxy configured — use the SDK session.
+    const firstQ = `query($board:[ID!]) { boards(ids:$board) { items_page(limit:500) { cursor items { id name column_values { id text value } } } } }`;
+    const first = await mondayQuery(firstQ, { board: [String(BOARD_ID)] });
+    let page = first.boards[0].items_page;
+    allItems = page.items || [];
+    let cursor = page.cursor;
+    // Follow pagination cursor until exhausted. Hard cap at 20 pages = 10,000 items as a safety.
+    let safety = 0;
+    while (cursor && safety < 20) {
+      const nextQ = `query($cursor:String!) { next_items_page(limit:500, cursor:$cursor) { cursor items { id name column_values { id text value } } } }`;
+      const next = await mondayQuery(nextQ, { cursor });
+      allItems = allItems.concat(next.next_items_page.items || []);
+      cursor = next.next_items_page.cursor;
+      safety++;
+    }
+  }
+  return allItems.map(it => {
+    const col = id => (it.column_values.find(c => c.id === id) || {}).text || "";
+    // Normalize numeric columns: blanks → 0, negatives → 0. Bad submissions like
+    // App=-27 would otherwise (a) silently subtract from team totals and (b) slip
+    // past the zero-signup detector (which checked === 0). Clamping at the
+    // fetch boundary keeps every downstream metric honest.
+    const num = id => Math.max(0, Number(col(id) || 0) || 0);
+    const dateRaw = col(COLS.eventDate);
+    return {
+      id: it.id, name: it.name,
+      eventName: col(COLS.eventName) || it.name,
+      // FIX (timezone off-by-one): parse as LOCAL midnight instead of `new Date(dateRaw)`
+      // (UTC), which shifted every event back a calendar day in Pacific time and
+      // dropped events that fell on the first day of the selected range.
+      date: parseLocalDate(dateRaw),
+      status: col(COLS.status),
+      contacts: num(COLS.contacts),
+      meaningful: num(COLS.meaningful),
+      appDownloads: num(COLS.appDownloads),
+      tll: num(COLS.tll),
+      mailing: num(COLS.mailing),
+      interplay: num(COLS.interplay),
+      inLanguage: num(COLS.inLanguage),
+      careFera: num(COLS.careFera),
+      esa: num(COLS.esa),
+      mbl: num(COLS.mbl),
+      program: col(COLS.program),
+      requester: col(COLS.requester),
+      programClass: classifyEvent({ requester: col(COLS.requester), program: col(COLS.program) }),
+      staff: col(COLS.staff),
+    };
+  }).filter(i => i.date && i.status === "Done");
+}
+// Classification: SCE Requester is the deterministic signal. If we can't map the
+// requester (blank or someone new), fall back to the older programs-promoted text
+// classifier so the event still gets a sensible class.
+function classifyEvent(event){
+  const reqClass = REQUESTER_CLASS[(event.requester || "").trim()];
+  if (reqClass) return reqClass;
+  return classifyProgram(event.program || "");
+}
+function computeWeekData(items){
+  const { start, end, label } = getActiveRange();
+  const inRange = items.filter(i => i.date >= start && i.date <= end);
+  // Scaling factor for fixed *weekly* targets: 30 downloads/week × N weeks in the
+  // active range. Mon-Sun presets land on whole weeks; month/YTD/custom give
+  // fractional weeks (May = 4.4, YTD = ~21.7), which we round to 1 decimal for display.
+  const rangeDays = Math.max(1, Math.round((end - start) / 86400000) + 1);
+  const weeksInRange = +(rangeDays / 7).toFixed(2);
+  const totals = inRange.reduce((a, i) => {
+    a.contacts += i.contacts; a.meaningful += i.meaningful;
+    a.appDownloads += i.appDownloads; a.tll += i.tll;
+    a.mailing += i.mailing; a.interplay += i.interplay;
+    a.careFera += i.careFera; a.mbl += i.mbl; a.esa += i.esa;
+    return a;
+  }, { contacts:0, meaningful:0, appDownloads:0, tll:0, mailing:0, interplay:0, careFera:0, mbl:0, esa:0 });
+  totals.events = inRange.length;
+  totals.coiqpEvents = inRange.filter(i => COIQP_CLASSES.includes(i.programClass)).length;
+  totals.eecEvents   = inRange.filter(i => i.programClass === "EEC").length;
+  // Per-metric eligible-event counts. Two flavors:
+  //  - Tag-based (MBL): event must promote the specific tag.
+  //  - Class-based (App/TLL/Mail/Interplay + IQP-scoped CARE/FERA/ESA): event class must match.
+  totals.eligibleEvents = {};
+  KPI_DEFS.filter(d => d.baselineKey).forEach(def => {
+    totals.eligibleEvents[def.key] = inRange.filter(i => eventEligibleForDef(i, def)).length;
+  });
+  KPI_DEFS.filter(d => d.eligibleClasses).forEach(def => {
+    totals.eligibleEvents[def.key] = inRange.filter(i => def.eligibleClasses.includes(i.programClass)).length;
+  });
+  totals.avgContacts = totals.events ? +(totals.contacts / totals.events).toFixed(1) : 0;
+  totals.engagedPct = totals.contacts ? +(totals.meaningful / totals.contacts * 100).toFixed(1) : 0;
+  const personEvents = inRange.reduce((s, i) => s + (i.staff ? i.staff.split(",").length : 1), 0);
+  return {
+    weekLabel: fmtRange(start, end),
+    rangeLabel: label,
+    weeksInRange,
+    rangeDays,
+    publishedDate: new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),
+    source: `${totals.events} events · ${personEvents} person-events · ${label.toLowerCase()} (${fmtRange(start, end)})`,
+    totals,
+    events: inRange.map(i => ({
+      name: i.eventName, date: fmtDate(i.date), program: i.programClass,
+      // Keep raw Programs Promoted text so the renderer can check MBL tag eligibility per-event.
+      rawProgram: i.program || "",
+      contacts: i.contacts, meaningful: i.meaningful,
+      pct: i.contacts ? Math.round(i.meaningful / i.contacts * 100) : 0,
+      tll: i.tll, mailing: i.mailing, interplay: i.interplay,
+      appDownloads: i.appDownloads, careFera: i.careFera, mbl: i.mbl, esa: i.esa,
+    })).sort((a,b) => new Date(a.date) - new Date(b.date))
+  };
+}
+function computeStaffData(items, programFilter){
+  const { start, end } = getActiveRange();
+  const scoped = items.filter(i => i.date >= start && i.date <= end);
+  // Group by staff (multi-select can have many staff per event; each gets credit)
+  const byStaff = {};
+  scoped.forEach(i => {
+    if (!i.staff) return;
+    i.staff.split(",").map(s => s.trim()).filter(Boolean).forEach(name => {
+      if (!byStaff[name]) byStaff[name] = { name, events: [] };
+      byStaff[name].events.push(i);
+    });
+  });
+  const staffList = Object.values(byStaff).map(s => {
+    let evs = s.events;
+    // Filter by single program class. "All" leaves everything; "eec"/"co"/"iqp"
+    // narrow to that class only. The "Mixed" class no longer exists in real data
+    // (requester deterministically identifies the lane).
+    if (programFilter === "eec")      evs = evs.filter(e => e.programClass === "EEC");
+    else if (programFilter === "co")  evs = evs.filter(e => e.programClass === "CO");
+    else if (programFilter === "iqp") evs = evs.filter(e => e.programClass === "IQP");
+    const eecEvents     = evs.filter(e => e.programClass === "EEC");
+    const coOnlyEvents  = evs.filter(e => e.programClass === "CO");
+    const iqpOnlyEvents = evs.filter(e => e.programClass === "IQP");
+    // CO+IQP pool for App Downloads average (both classes target App).
+    const coEvents      = evs.filter(e => e.programClass === "CO" || e.programClass === "IQP");
+    const totalContacts = evs.reduce((a, e) => a + e.contacts, 0);
+    const totalMeaningful = evs.reduce((a, e) => a + e.meaningful, 0);
+    const zeroEvents = evs.filter(e => (e.contacts === 0 && e.tll === 0 && e.mailing === 0 && e.appDownloads === 0 && e.interplay === 0)).length;
+    const lowContactEvents = evs.filter(e => e.contacts > 0 && e.contacts < 25).length;
+    const avg = (arr, key) => arr.length ? +(arr.reduce((a,e) => a + e[key], 0) / arr.length).toFixed(2) : 0;
+    // Eligibility-filtered event pools for dynamic-target metrics. CARE/FERA + ESA are
+    // IQP-LANE metrics (programClass === "IQP"); MBL stays program-tag based.
+    const careEligible = evs.filter(isIqpEvent);
+    const mblEligible  = evs.filter(e => eventPromotes(e, ["Medical Baseline (MBL)"]));
+    const esaEligible  = careEligible; // same IQP-lane basis as CARE/FERA
+    const data = {
+      name: s.name,
+      eventCount: evs.length,
+      eecCount: eecEvents.length,
+      coCount: coEvents.length,
+      coOnlyCount: coOnlyEvents.length,
+      iqpOnlyCount: iqpOnlyEvents.length,
+      careEligibleCount: careEligible.length,
+      mblEligibleCount:  mblEligible.length,
+      esaEligibleCount:  esaEligible.length,
+      totalContacts, totalMeaningful,
+      engagedPct: totalContacts ? +(totalMeaningful / totalContacts * 100).toFixed(1) : 0,
+      avgContacts: evs.length ? +(totalContacts / evs.length).toFixed(1) : 0,
+      avgApp: avg(coEvents, "appDownloads"),
+      avgTll: avg(eecEvents, "tll"),
+      avgMail: avg(eecEvents, "mailing"),
+      avgInter: avg(eecEvents, "interplay"),
+      avgCareFera: avg(careEligible, "careFera"),
+      avgEsa: avg(esaEligible, "esa"),
+      avgMbl: avg(mblEligible, "mbl"),
+      allZeroPct: evs.length ? Math.round(zeroEvents / evs.length * 100) : 0,
+      lowContactPct: evs.length ? Math.round(lowContactEvents / evs.length * 100) : 0,
+      recent: evs.slice().sort((a,b) => b.date - a.date).slice(0, 10),
+    };
+    // Two-tier smooth scoring:
+    //   Per-KPI score = (staff_avg / per_event_goal) × 100, capped at 150% so
+    //   "way over goal" helps but doesn't run away. Symmetric below the threshold
+    //   (barely under is small penalty, way under is bigger).
+    //   CORE  (App, TLL, Mail) — older established KPIs, weight 2.
+    //   BONUS (Interplay, CARE/FERA, MBL, ESA) — newer, weight 1 (penalize less, help less).
+    //   Composite = (core_avg × 2 + bonus_avg × 1) / 3.
+    // Per Evan: "if good in core but poor in newer ones, they aren't hit as hard."
+    const KPI_CAP = 150;
+    const kpiScore = (avg, threshold) =>
+      threshold > 0 ? Math.min(avg / threshold * 100, KPI_CAP) : null;
+    const coreScores = [];
+    if (data.coCount  > 0) coreScores.push(kpiScore(data.avgApp,  3));
+    if (data.eecCount > 0) coreScores.push(kpiScore(data.avgTll,  1));
+    if (data.eecCount > 0) coreScores.push(kpiScore(data.avgMail, 4));
+    const bonusScores = [];
+    if (data.eecCount > 0)                                            bonusScores.push(kpiScore(data.avgInter,    1));
+    if (data.careEligibleCount > 0 && (BASELINES.careFera || 0) > 0)  bonusScores.push(kpiScore(data.avgCareFera, BASELINES.careFera));
+    if (data.mblEligibleCount  > 0 && (BASELINES.mbl       || 0) > 0) bonusScores.push(kpiScore(data.avgMbl,      BASELINES.mbl));
+    if (data.esaEligibleCount  > 0 && (BASELINES.esa       || 0) > 0) bonusScores.push(kpiScore(data.avgEsa,      BASELINES.esa));
+    const coreAvg  = coreScores.length  ? coreScores.reduce((a,b) => a+b, 0)  / coreScores.length  : null;
+    const bonusAvg = bonusScores.length ? bonusScores.reduce((a,b) => a+b, 0) / bonusScores.length : null;
+    let composite;
+    if (coreAvg !== null && bonusAvg !== null) composite = (coreAvg * 2 + bonusAvg) / 3;
+    else if (coreAvg !== null)                 composite = coreAvg;
+    else                                       composite = null;
+    data.compositeScore = composite != null ? +composite.toFixed(1) : null;
+    data.coreScore      = coreAvg    != null ? +coreAvg.toFixed(1)  : null;
+    data.bonusScore     = bonusAvg   != null ? +bonusAvg.toFixed(1) : null;
+    // Absolute cutoffs. 95% = "right at goal", 65% = below goal on multiple metrics,
+    // <65% = significantly below across the board.
+    if (data.eventCount < 3 || composite == null) data.diagnosis = "Limited Data";
+    else if (composite >= 95) data.diagnosis = "On Track";
+    else if (composite >= 65) data.diagnosis = "Inconsistent";
+    else                      data.diagnosis = "Underperforming";
+    return data;
+  });
+  return staffList;
+}
+function render(items, isLive){
+  document.getElementById("status-label").textContent = isLive ? "Live · auto-refresh 5 min" : "Reference data · open inside Monday for live";
+  document.getElementById("status-label").style.color = isLive ? "var(--good-text)" : "var(--text-tertiary)";
+  if (!isLive) {
+    // Shape FALLBACK events like live items so date-range filtering works the same way.
+    // Without this the snapshot was frozen on May 18-24 regardless of which chip was clicked.
+    // Map class → representative raw Programs Promoted text so the eligibility filter
+    // (which looks for exact tag substrings) works on the fallback events too.
+    const programRawByClass = {
+      EEC: "Workforce Development/Education (WFD), Lending Libraries (LL), Building Electrification (BE), Energy Efficiency (EE)",
+      IQP: "Income-Qualified Programs (IQP), Energy Efficiency (EE), Medical Baseline (MBL), MySCEApp, Ways to Save",
+      CO:  "Medical Baseline (MBL), Public Safety Power Shutoff (PSPS), Safety, Be Prepared",
+      Mixed: "Income-Qualified Programs (IQP), Energy Efficiency (EE), Workforce Development/Education (WFD)",
+    };
+    const synthetic = FALLBACK.events.map(e => ({
+      ...e,
+      date: new Date(`${e.date}, 2026`),
+      eventName: e.name,
+      status: "Done",
+      staff: "",
+      program: programRawByClass[e.programClass] || "",
+    }));
+    STATE.all = synthetic;
+    BASELINES = { careFera: 1, mbl: 1, esa: 1 };  // minimum bar: 1 per eligible event
+    document.getElementById("subtitle").textContent = `H-MET reporting for Southern California Edison · ${FALLBACK.weekLabel} (reference data)`;
+    document.getElementById("published").textContent = FALLBACK.publishedDate;
+    renderAll();
+    return;
+  }
+  STATE.all = items;
+  BASELINES = { careFera: 1, mbl: 1, esa: 1 };  // minimum bar: 1 per eligible event
+  STATE.lastFetched = new Date();
+  document.getElementById("published").textContent = STATE.lastFetched.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+  renderAll();
+  document.getElementById("sync-line").textContent = "Last sync: " + STATE.lastFetched.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+}
+function renderWeekPane(d){
+  document.getElementById("kpi-source").textContent = `Source: ${d.source}`;
+  document.getElementById("m-events").textContent = fmtNum(d.totals.events);
+  document.getElementById("m-events-foot").textContent = `Avg ${d.totals.avgContacts || 0} contacts / event`;
+  document.getElementById("m-contacts").textContent = fmtNum(d.totals.contacts);
+  document.getElementById("m-meaningful").textContent = fmtNum(d.totals.meaningful);
+  document.getElementById("m-meaningful-foot").textContent = `Of ${fmtNum(d.totals.contacts)} total`;
+  document.getElementById("m-engaged").textContent = `${d.totals.engagedPct}%`;
+  document.getElementById("m-engaged-foot").textContent = d.totals.engagedPct >= 60 ? "Above 60% threshold" : "Below 60% threshold";
+  // IQP-tracked enrollments — show totals plus the per-CO/IQP-event average
+  const coCount = d.totals.coiqpEvents || 0;
+  const perEvent = (total) => coCount ? (total / coCount).toFixed(1) : "0";
+  document.getElementById("m-carefera").textContent = fmtNum(d.totals.careFera || 0);
+  document.getElementById("m-carefera-foot").textContent = `${perEvent(d.totals.careFera || 0)} / CO+IQP event`;
+  document.getElementById("m-mbl").textContent = fmtNum(d.totals.mbl || 0);
+  document.getElementById("m-mbl-foot").textContent = `${perEvent(d.totals.mbl || 0)} / CO+IQP event`;
+  document.getElementById("m-esa").textContent = fmtNum(d.totals.esa || 0);
+  document.getElementById("m-esa-foot").textContent = `${perEvent(d.totals.esa || 0)} / CO+IQP event`;
+  const tbody = document.getElementById("kpi-tbody"); tbody.innerHTML = "";
+  KPI_DEFS.forEach(def => {
+    const actual = d.totals[def.key] || 0;
+    const baseline = def.baselineKey ? (BASELINES[def.baselineKey] || 0) : null;
+    // Three target flavors:
+    //  1. isAvg (Avg Contacts/Event): fixed at the per-event benchmark, unscaled.
+    //  2. eligibleClasses set (App/TLL/Mail/Interplay): target = perEvent × eligible-class events.
+    //  3. baselineKey set (CARE/FERA, MBL, ESA): target = baseline × eligible events
+    //     (IQP-lane events for CARE/FERA + ESA; MBL-tagged events for MBL).
+    let target, targetMain, targetSub;
+    const eligLabel = def.eligibleLabel || def.scope;
+    if (def.isAvg) {
+      target = def.perEvent;
+      targetMain = `${target} ${def.unit}`;
+      targetSub  = `per event (fixed)`;
+    } else if (baseline == null && def.eligibleClasses) {
+      const eligibleCount = (d.totals.eligibleEvents && d.totals.eligibleEvents[def.key]) || 0;
+      const classLabel = def.eligibleClasses.join("+");
+      if (eligibleCount === 0) {
+        targetMain = `<span class="mute">— no ${classLabel} events in range</span>`;
+        targetSub  = "";
+      } else {
+        target = def.perEvent * eligibleCount;
+        targetMain = `${target} ${def.unit}`;
+        targetSub  = `${def.perEvent} / event × ${eligibleCount} ${classLabel} event${eligibleCount === 1 ? '' : 's'}`;
+      }
+    } else {
+      const eligibleCount = (d.totals.eligibleEvents && d.totals.eligibleEvents[def.key]) || 0;
+      target = +(baseline * eligibleCount).toFixed(1);
+      if (baseline === 0 || eligibleCount === 0) {
+        targetMain = `<span class="mute">— no ${eligLabel} events in range</span>`;
+        targetSub  = "";
+      } else {
+        targetMain = `${target} ${def.unit}`;
+        targetSub  = `min ${baseline} / ${eligLabel} event × ${eligibleCount} events`;
+      }
+    }
+    target = target || 0;
+    const delta = Math.round((actual - target) * 10) / 10;
+    const above = actual >= target;
+    const deltaStr = (delta >= 0 ? "+" : "") + (def.key === "avgContacts" ? delta.toFixed(1) : delta);
+    const targetCell = `<div>${targetMain}</div>${targetSub ? `<div class="target-sub">${targetSub}</div>` : ""}`;
+    const row = document.createElement("tr");
+    const icon = KPI_ICONS[def.key] || "circle";
+    row.innerHTML = `
+      <td><i data-lucide="${icon}" class="kpi-icon"></i>${def.label}${def.scope ? ` <span class="mute">(${def.scope})</span>` : ''}</td>
+      <td class="num strong">${def.key === "avgContacts" ? actual.toFixed(1) : actual}</td>
+      <td class="num mute">${targetCell}</td>
+      <td class="num ${above ? 'pos' : 'neg'}">${deltaStr}</td>
+      <td><span class="badge ${above ? 'good' : 'bad'}"><i data-lucide="${above ? 'check' : 'x'}"></i>${above ? 'On Target' : 'Below'}</span></td>`;
+    tbody.appendChild(row);
+  });
+  const eb = document.getElementById("events-tbody"); eb.innerHTML = "";
+  // Per-event sign-up pills, scoped by program. Only render non-zero values so the
+  // column stays compact. EEC events show TLL/Mail/Interplay; CO/IQP show App/CARE/MBL/ESA.
+  const COIQP_PILLS = [["appDownloads","App","smartphone"], ["careFera","CARE","piggy-bank"], ["mbl","MBL","heart-pulse"], ["esa","ESA","house-plug"]];
+  const EEC_PILLS   = [["tll","TLL","wrench"], ["mailing","Mail","mail"], ["interplay","Inter","graduation-cap"]];
+  const SIGNUP_DEFS = {
+    EEC:   EEC_PILLS,
+    CO:    COIQP_PILLS,
+    IQP:   COIQP_PILLS,
+    Mixed: [...EEC_PILLS, ...COIQP_PILLS],
+    Other: [...EEC_PILLS, ...COIQP_PILLS], // unclassified — show any non-zero sign-up
+  };
+  // Build the set of KPIs that are actually applicable to this event, then check
+  // whether ALL of them came back zero. CARE/ESA only apply to IQP-LANE events;
+  // MBL respects the program tag.
+  function relevantSignupKeys(e){
+    const keys = new Set();
+    const isEec   = e.program === "EEC";
+    const isCoiqp = e.program === "CO" || e.program === "IQP";
+    if (isEec) { keys.add("tll"); keys.add("mailing"); keys.add("interplay"); }
+    if (isCoiqp) {
+      keys.add("appDownloads");
+      if (e.program === "IQP") { keys.add("careFera"); keys.add("esa"); }
+      const raw = e.rawProgram || "";
+      if (raw.includes("Medical Baseline (MBL)")) keys.add("mbl");
+    }
+    return [...keys];
+  }
+  function isZeroSignupEvent(e){
+    const keys = relevantSignupKeys(e);
+    if (!keys.length) return false; // no applicable KPIs → not flagged
+    return keys.every(k => (e[k] || 0) === 0);
+  }
+  // Count + surface the zero-signup event total in the events heading so it
+  // acts as a quick "needs coaching" notification.
+  const zeroCount = d.events.filter(isZeroSignupEvent).length;
+  const evtHead = document.getElementById("events-heading-range");
+  if (evtHead && evtHead.parentElement) {
+    // Remove any prior badge so re-renders don't stack.
+    const prior = evtHead.parentElement.querySelector(".zero-alert-badge");
+    if (prior) prior.remove();
+    if (zeroCount > 0) {
+      const badge = document.createElement("span");
+      badge.className = "zero-alert-badge";
+      badge.innerHTML = `<i data-lucide="alert-triangle"></i>${zeroCount} zero sign-up${zeroCount === 1 ? '' : 's'}`;
+      evtHead.parentElement.appendChild(badge);
+    }
+  }
+  d.events.forEach(e => {
+    const defs = SIGNUP_DEFS[e.program] || SIGNUP_DEFS.Other;
+    const pills = defs
+      .filter(([key]) => (e[key] || 0) > 0)
+      .map(([key, label, icon]) => `<span class="signup-pill"><i data-lucide="${icon}"></i>${label} ${e[key]}</span>`)
+      .join("");
+    const zero = isZeroSignupEvent(e);
+    const signupCell = pills
+      ? pills
+      : (zero
+          ? '<span class="badge bad"><i data-lucide="alert-triangle"></i>Zero sign-ups</span>'
+          : '<span class="mute">—</span>');
+    const row = document.createElement("tr");
+    if (zero) row.classList.add("zero-row");
+    row.innerHTML = `
+      <td>${zero ? '<i data-lucide="alert-triangle" class="row-icon zero-icon"></i>' : '<i data-lucide="person-standing" class="row-icon"></i>'}${e.name}</td>
+      <td class="mute">${e.date}</td>
+      <td class="mute">${e.program}</td>
+      <td class="num strong">${e.contacts}</td>
+      <td class="num">${e.meaningful}</td>
+      <td class="signup-cell">${signupCell}</td>`;
+    eb.appendChild(row);
+  });
+}
+function renderStaffPaneFallback(){
+  document.getElementById("staff-tbody").innerHTML = `<tr><td colspan="11" class="mute" style="text-align:center; padding:24px;">Loading data… if this persists, the widget may be loaded outside Monday.</td></tr>`;
+}
+function setProg(p){
+  STATE.program = p;
+  document.querySelectorAll(".chip[data-prog]").forEach(c => c.classList.toggle("active", c.dataset.prog === p));
+  renderStaff();
+}
+function renderStaff(){
+  if (!STATE.all || !STATE.all.length) { renderStaffPaneFallback(); return; }
+  // Refresh dynamic header labels with historical baselines (computed in render())
+  document.getElementById("hdr-carefera-base").textContent = `/${BASELINES.careFera || 0}`;
+  document.getElementById("hdr-mbl-base").textContent      = `/${BASELINES.mbl || 0}`;
+  document.getElementById("hdr-esa-base").textContent      = `/${BASELINES.esa || 0}`;
+  const search = (document.getElementById("staff-search").value || "").toLowerCase();
+  let data = computeStaffData(STATE.all, STATE.program);
+  if (search) data = data.filter(s => s.name.toLowerCase().includes(search));
+  // sort
+  const dianRank = { "Underperforming": 0, "Inconsistent": 1, "Limited Data": 2, "On Track": 3 };
+  const key = STATE.sortKey, dir = STATE.sortDir === "asc" ? 1 : -1;
+  data.sort((a, b) => {
+    if (key === "diagnosis") {
+      const cmp = (dianRank[a.diagnosis] ?? 9) - (dianRank[b.diagnosis] ?? 9);
+      return cmp !== 0 ? cmp * dir : (b.eventCount - a.eventCount);
+    }
+    if (key === "name") return a.name.localeCompare(b.name) * dir;
+    return (a[key] - b[key]) * dir;
+  });
+  const tbody = document.getElementById("staff-tbody"); tbody.innerHTML = "";
+  data.forEach((s, idx) => {
+    const dBadge = s.diagnosis === "On Track" ? "good" : s.diagnosis === "Inconsistent" ? "warn" : s.diagnosis === "Limited Data" ? "" : "bad";
+    const dIcon  = s.diagnosis === "On Track" ? "smile-plus" : s.diagnosis === "Inconsistent" ? "meh" : s.diagnosis === "Limited Data" ? "circle-help" : "frown";
+    const row = document.createElement("tr");
+    row.className = "staff-row";
+    row.dataset.idx = idx;
+    row.innerHTML = `
+      <td class="strong">${s.name}</td>
+      <td class="num">${s.eventCount} <span class="mute">(${s.eecCount}E / ${s.coOnlyCount}CO / ${s.iqpOnlyCount}IQP)</span></td>
+      <td class="num">${s.avgContacts}</td>
+      <td class="num ${s.avgApp >= 3 ? 'pos' : s.avgApp > 0 ? '' : 'mute'}">${s.avgApp || '—'}</td>
+      <td class="num ${s.avgTll >= 1 ? 'pos' : s.avgTll > 0 ? '' : 'mute'}">${s.avgTll || '—'}</td>
+      <td class="num ${s.avgMail >= 4 ? 'pos' : s.avgMail > 0 ? '' : 'mute'}">${s.avgMail || '—'}</td>
+      <td class="num ${s.avgInter >= 1 ? 'pos' : s.avgInter > 0 ? '' : 'mute'}">${s.avgInter || '—'}</td>
+      <td class="num ${s.avgCareFera >= (BASELINES.careFera || 0) && s.avgCareFera > 0 ? 'pos' : s.avgCareFera > 0 ? '' : 'mute'}">${s.avgCareFera > 0 ? s.avgCareFera : (s.careEligibleCount > 0 ? '0' : '—')}</td>
+      <td class="num ${s.avgMbl >= (BASELINES.mbl || 0) && s.avgMbl > 0 ? 'pos' : s.avgMbl > 0 ? '' : 'mute'}">${s.avgMbl > 0 ? s.avgMbl : (s.mblEligibleCount > 0 ? '0' : '—')}</td>
+      <td class="num ${s.avgEsa >= (BASELINES.esa || 0) && s.avgEsa > 0 ? 'pos' : s.avgEsa > 0 ? '' : 'mute'}">${s.avgEsa > 0 ? s.avgEsa : (s.esaEligibleCount > 0 ? '0' : '—')}</td>
+      <td><span class="badge ${dBadge}"><i data-lucide="${dIcon}"></i>${s.diagnosis}</span></td>`;
+    row.onclick = () => toggleDetail(row, s);
+    tbody.appendChild(row);
+  });
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="11" class="mute" style="text-align:center; padding:24px;">No staff match your filters.</td></tr>`;
+  }
+}
+function toggleDetail(row, s){
+  const next = row.nextSibling;
+  if (next && next.classList && next.classList.contains("detail")) {
+    next.remove();
+    row.classList.remove("expanded");
+    return;
+  }
+  // close any other open detail rows
+  document.querySelectorAll(".staff-row.expanded").forEach(r => { r.classList.remove("expanded"); if (r.nextSibling && r.nextSibling.classList && r.nextSibling.classList.contains("detail")) r.nextSibling.remove(); });
+  row.classList.add("expanded");
+  const detail = document.createElement("tr");
+  detail.className = "detail";
+  const eventsRows = s.recent.map(e => `
+    <tr>
+      <td>${e.eventName}</td>
+      <td class="mute">${fmtDate(e.date)}</td>
+      <td class="mute">${e.programClass}</td>
+      <td class="num">${e.contacts}</td>
+      <td class="num">${e.meaningful}</td>
+      <td class="num">${e.appDownloads || '—'}</td>
+      <td class="num">${e.tll || '—'}</td>
+      <td class="num">${e.mailing || '—'}</td>
+      <td class="num">${e.interplay || '—'}</td>
+    </tr>`).join("");
+  detail.innerHTML = `<td colspan="8">
+    <p class="meta-row">${s.name} · ${s.eventCount} events (${s.eecCount} EEC / ${s.coOnlyCount} CO / ${s.iqpOnlyCount} IQP) · ${s.totalContacts.toLocaleString()} total contacts · ${s.engagedPct}% engagement · <strong>Score ${s.compositeScore ?? '—'}%</strong> = (core ${s.coreScore ?? '—'}% × 2 + bonus ${s.bonusScore ?? '—'}%) ÷ 3</p>
+    <div class="breakdown">
+      <div class="br-tile"><p class="br-label"><i data-lucide="piggy-bank"></i>Avg CARE/FERA <span class="mute">/${BASELINES.careFera || 0}</span></p><p class="br-val ${s.avgCareFera >= (BASELINES.careFera||0) && s.avgCareFera>0 ? '' : 'muted'}">${s.avgCareFera > 0 ? s.avgCareFera : (s.careEligibleCount > 0 ? '0' : '—')}</p><p class="br-foot">${s.careEligibleCount} IQP-lane event${s.careEligibleCount === 1 ? '' : 's'}</p></div>
+      <div class="br-tile"><p class="br-label"><i data-lucide="heart-pulse"></i>Avg MBL <span class="mute">/${BASELINES.mbl || 0}</span></p><p class="br-val ${s.avgMbl >= (BASELINES.mbl||0) && s.avgMbl>0 ? '' : 'muted'}">${s.avgMbl > 0 ? s.avgMbl : (s.mblEligibleCount > 0 ? '0' : '—')}</p><p class="br-foot">${s.mblEligibleCount} MBL-tagged event${s.mblEligibleCount === 1 ? '' : 's'}</p></div>
+      <div class="br-tile"><p class="br-label"><i data-lucide="house-plug"></i>Avg ESA <span class="mute">/${BASELINES.esa || 0}</span></p><p class="br-val ${s.avgEsa >= (BASELINES.esa||0) && s.avgEsa>0 ? '' : 'muted'}">${s.avgEsa > 0 ? s.avgEsa : (s.esaEligibleCount > 0 ? '0' : '—')}</p><p class="br-foot">${s.esaEligibleCount} IQP-lane event${s.esaEligibleCount === 1 ? '' : 's'}</p></div>
+    </div>
+    <p style="font-size:11px; color:var(--text-tertiary); margin:0 0 6px;">Recent events (most recent 10)</p>
+    <table class="events"><thead><tr><th>Event</th><th>Date</th><th>Program</th><th class="num">Contacts</th><th class="num">Meaningful</th><th class="num">App</th><th class="num">TLL</th><th class="num">Mail</th><th class="num">Inter</th></tr></thead><tbody>${eventsRows || '<tr><td colspan="9" class="mute" style="text-align:center;">No events in window.</td></tr>'}</tbody></table>
+  </td>`;
+  row.parentNode.insertBefore(detail, row.nextSibling);
+  if (window.lucide && typeof lucide.createIcons === "function") lucide.createIcons();
+}
+// Sort header clicks
+document.querySelectorAll("table.staff th[data-sort]").forEach(th => {
+  th.onclick = () => {
+    const k = th.dataset.sort;
+    if (STATE.sortKey === k) STATE.sortDir = STATE.sortDir === "asc" ? "desc" : "asc";
+    else { STATE.sortKey = k; STATE.sortDir = (k === "name" || k === "diagnosis") ? "asc" : "desc"; }
+    document.querySelectorAll("table.staff th").forEach(h => h.classList.remove("sorted"));
+    th.classList.add("sorted");
+    renderStaff();
+  };
+});
+// Tab clicks
+document.querySelectorAll(".tab").forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+    document.querySelectorAll(".pane").forEach(p => p.classList.remove("active"));
+    t.classList.add("active");
+    document.getElementById("pane-" + t.dataset.tab).classList.add("active");
+  };
+});
+function renderAll(){
+  const { start, end, label } = getActiveRange();
+  const rangeText = fmtRange(start, end);
+  document.getElementById("range-summary").textContent = `${label} · ${rangeText}`;
+  // Reflect the active Mon-Sun range in the section headings so users see exactly
+  // which week the snapshot covers (matches Excel "WEEK OF MAY 18–24, 2026" format).
+  const headingText = `${label} · ${rangeText}`;
+  const kpiHead = document.getElementById("kpi-heading-range");
+  const evtHead = document.getElementById("events-heading-range");
+  if (kpiHead) kpiHead.textContent = headingText;
+  if (evtHead) evtHead.textContent = headingText;
+  // Only sync the date inputs from state when a preset is active — otherwise we'd
+  // overwrite what the user is typing into the custom date pickers mid-edit.
+  if (STATE.rangePreset !== "custom") {
+    document.getElementById("range-start").value = start.toISOString().slice(0,10);
+    document.getElementById("range-end").value = end.toISOString().slice(0,10);
+  }
+  if (STATE.all && STATE.all.length) {
+    const weekData = computeWeekData(STATE.all);
+    document.getElementById("subtitle").textContent = `H-MET reporting for Southern California Edison · ${weekData.rangeLabel} (${weekData.weekLabel})`;
+    renderWeekPane(weekData);
+    renderStaff();
+  } else {
+    renderWeekPane(FALLBACK);
+    renderStaffPaneFallback();
+  }
+  // Convert any `data-lucide` placeholders just injected by the renders above.
+  if (window.lucide && typeof lucide.createIcons === "function") lucide.createIcons();
+}
+async function refresh(){
+  try {
+    const items = await fetchAll();
+    if (items) { render(items, true); return; }
+    render(null, false);
+  } catch (e) {
+    console.error("Live fetch failed:", e);
+    document.getElementById("status-label").textContent = "Live fetch failed · showing reference";
+    document.getElementById("status-label").style.color = "var(--bad-text)";
+    render(null, false);
+  }
+}
+// initialize range chips on first load
+setRange("last-week");
+refresh();
+setInterval(refresh, 5 * 60 * 1000);
+</script>
+</body>
+</html>
